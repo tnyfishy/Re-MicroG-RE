@@ -165,7 +165,8 @@ class SettingsFragment : ResourceSettingsFragment() {
         val context = requireContext()
         if (GcmPrefs.get(requireContext()).isEnabled) {
             val database = GcmDatabase(context)
-            val regCount = database.registrationList.size
+            // Apps added by hand have no registration yet, so count apps instead of registrations
+            val regCount = database.appList.count { it.allowRegister }
             database.close()
             findPreference<Preference>(PREF_GCM)!!.summary = context.getString(org.microg.gms.base.core.R.string.service_status_enabled_short) + " - " + context.resources.getQuantityString(R.plurals.gcm_registered_apps_counter, regCount, regCount)
         } else {

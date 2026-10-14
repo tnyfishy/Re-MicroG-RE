@@ -204,6 +204,6 @@ class PushNotificationFragment : PreferenceFragmentCompat() {
     }
 
     companion object {
-        private const val UPDATE_INTERVAL = 1000L
+        private const val UPDATE_INTERVAL = 5000L
     }
 }

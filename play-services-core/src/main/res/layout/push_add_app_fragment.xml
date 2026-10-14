@@ -22,7 +22,6 @@
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="12dp"
         android:background="@drawable/loading_indicator_container"
         android:elevation="6dp"
         android:visibility="gone">

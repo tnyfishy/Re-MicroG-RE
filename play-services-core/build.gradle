@@ -216,10 +216,29 @@ android {
         disable 'FlowOperatorInvokedInComposition', 'CoroutineCreationDuringComposition', 'StateFlowValueCalledInComposition'
     }
 
+    // CI passes its own key through the environment; without it, -PdebugSignRelease=true signs
+    // with the debug key so the optimized release build can still be installed for testing.
+    signingConfigs {
+        ci {
+            def keystorePath = System.getenv("RE_KEYSTORE_FILE")
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("RE_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("RE_KEY_ALIAS")
+                keyPassword System.getenv("RE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (System.getenv("RE_KEYSTORE_FILE")) {
+                signingConfig signingConfigs.ci
+            } else if (project.findProperty("debugSignRelease") == "true") {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 

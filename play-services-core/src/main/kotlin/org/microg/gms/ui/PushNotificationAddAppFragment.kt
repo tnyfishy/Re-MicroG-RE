@@ -17,6 +17,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -64,6 +65,8 @@ class PushNotificationAddAppFragment : Fragment() {
     private var selectedColor = Color.LTGRAY
     private var swipeRefresh: SwipeRefreshLayout? = null
     private var loadingIndicator: View? = null
+    private var pullCircle: View? = null
+    private var preDrawListener: ViewTreeObserver.OnPreDrawListener? = null
 
     private val requestAppListPermission =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { loadApps() }
@@ -99,11 +102,24 @@ class PushNotificationAddAppFragment : Fragment() {
         }
         swipe.setOnRefreshListener { loadApps() }
         swipeRefresh = swipe
+        pullCircle = (0 until swipe.childCount).map { swipe.getChildAt(it) }.firstOrNull { it !== list }
+        val listener = ViewTreeObserver.OnPreDrawListener {
+            syncLoadingContainer()
+            true
+        }
+        swipe.viewTreeObserver.addOnPreDrawListener(listener)
+        preDrawListener = listener
 
         if (needsAppListPermission()) requestAppListPermission.launch(APP_LIST_PERMISSION) else loadApps()
     }
 
     override fun onDestroyView() {
+        preDrawListener?.let { listener ->
+            val observer = swipeRefresh?.viewTreeObserver
+            if (observer != null && observer.isAlive) observer.removeOnPreDrawListener(listener)
+        }
+        preDrawListener = null
+        pullCircle = null
         swipeRefresh = null
         loadingIndicator = null
         super.onDestroyView()
@@ -124,18 +140,30 @@ class PushNotificationAddAppFragment : Fragment() {
 
     private fun setLoading(loading: Boolean) {
         swipeRefresh?.isRefreshing = loading
-        val indicator = loadingIndicator ?: return
-        indicator.animate().cancel()
-        if (loading) {
-            indicator.alpha = 0f
-            indicator.scaleX = 0.6f
-            indicator.scaleY = 0.6f
-            indicator.visibility = View.VISIBLE
-            indicator.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200).start()
+    }
+
+    /**
+     * The stock pull-to-refresh circle is invisible; the Material 3 loading indicator in its round
+     * container is placed where that circle is on every frame, so the container follows the
+     * finger while pulling, stays while loading, and leaves when the circle goes away.
+     */
+    private fun syncLoadingContainer() {
+        val container = loadingIndicator ?: return
+        val circle = pullCircle ?: return
+        val reveal = if (circle.visibility == View.VISIBLE && circle.height > 0) {
+            ((circle.top + circle.height) / (circle.height * 1.4f)).coerceIn(0f, 1f) * circle.scaleX.coerceIn(0f, 1f)
         } else {
-            indicator.animate().alpha(0f).scaleX(0.6f).scaleY(0.6f).setDuration(200)
-                    .withEndAction { indicator.visibility = View.GONE }.start()
+            0f
         }
+        if (reveal <= 0.01f) {
+            if (container.visibility != View.GONE) container.visibility = View.GONE
+            return
+        }
+        if (container.visibility != View.VISIBLE) container.visibility = View.VISIBLE
+        container.alpha = reveal
+        container.scaleX = 0.6f + 0.4f * reveal
+        container.scaleY = 0.6f + 0.4f * reveal
+        container.translationY = circle.top + (circle.height - container.layoutParams.height) / 2f
     }
 
     private fun loadApps() {

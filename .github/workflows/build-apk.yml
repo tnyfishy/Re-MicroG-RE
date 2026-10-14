@@ -11,7 +11,7 @@ on:
 
 jobs:
   apk:
-    name: "Debug APK"
+    name: "APK"
     runs-on: ubuntu-latest
     env:
       GRADLE_MICROG_VERSION_WITHOUT_GIT: 1
@@ -28,8 +28,31 @@ jobs:
       - name: "Setup Gradle"
         uses: gradle/actions/setup-gradle@v4
 
-      - name: "Build debug APK"
-        run: "./gradlew --no-daemon :play-services-core:assembleDefaultDebug"
+      # Optional: a stable signing key lets new builds update the installed app instead of
+      # needing an uninstall. Add repository secrets KEYSTORE_B64 (base64 of the keystore),
+      # KEYSTORE_PASSWORD, KEYSTORE_ENTRY_ALIAS and KEYSTORE_ENTRY_PASSWORD to enable it.
+      - name: "Prepare signing key"
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_ENTRY_ALIAS: ${{ secrets.KEYSTORE_ENTRY_ALIAS }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.KEYSTORE_ENTRY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "RE_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore"
+              echo "RE_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "RE_KEY_ALIAS=$KEYSTORE_ENTRY_ALIAS"
+              echo "RE_KEY_PASSWORD=$KEYSTORE_ENTRY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "Signing with the repository key"
+          else
+            echo "No signing key secret: the build is signed with a temporary debug key"
+          fi
+
+      - name: "Build optimized APK"
+        run: "./gradlew --no-daemon :play-services-core:assembleDefaultRelease -PdebugSignRelease=true"
 
       - name: "List built APKs"
         run: |
@@ -57,5 +80,5 @@ jobs:
           gh release create "debug-${{ github.run_number }}" "$APK" \
             --prerelease \
             --target "${{ github.sha }}" \
-            --title "v1.0 - Debug build ${{ github.run_number }}" \
-            --notes "Debug-signed APK built from ${{ github.sha }}."
+            --title "v1.0 - Build ${{ github.run_number }}" \
+            --notes "Optimized APK built from ${{ github.sha }}."

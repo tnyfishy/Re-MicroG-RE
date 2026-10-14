@@ -137,11 +137,14 @@ object KeepAlive {
         dismissSetupDialog()
 
         fun label(done: Boolean, text: Int) = (if (done) "✓  " else "○  ") + activity.getString(text)
+        val batteryDone = isIgnoringBatteryOptimizations(activity)
+        // Without a readable state, count it as done once the user opened its screen
+        val autoStartDone = isAutoStartAllowed(activity) ?: prefs.getBoolean(KEY_AUTOSTART_OPENED, false)
+        val unusedDone = isUnusedAppRestrictionDisabled(activity)
         val items = arrayOf(
-                label(isIgnoringBatteryOptimizations(activity), R.string.keep_alive_item_battery),
-                // Without a readable state, count it as done once the user opened its screen
-                label(isAutoStartAllowed(activity) ?: prefs.getBoolean(KEY_AUTOSTART_OPENED, false), R.string.keep_alive_item_autostart),
-                label(isUnusedAppRestrictionDisabled(activity), R.string.keep_alive_item_unused)
+                label(batteryDone, R.string.keep_alive_item_battery),
+                label(autoStartDone, R.string.keep_alive_item_autostart),
+                label(unusedDone, R.string.keep_alive_item_unused)
         )
         val dialog = activity.buildAlertDialog()
                 .setTitle(R.string.keep_alive_title)
@@ -162,6 +165,8 @@ object KeepAlive {
                 .create()
         setupDialog = dialog
         dialog.show()
+        // "Done" only becomes available once every permission is granted
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = batteryDone && autoStartDone && unusedDone
     }
 
     @JvmStatic
