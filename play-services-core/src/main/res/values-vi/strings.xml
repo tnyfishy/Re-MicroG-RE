@@ -87,8 +87,6 @@
     <string name="pref_theme_light">Sáng</string>
     <string name="pref_theme_dark">Tối</string>
     <string name="pref_theme_amoled">AMOLED</string>
-    <string name="pref_dynamic_color_title">Màu động</string>
-    <string name="pref_dynamic_color_summary">Màu Material 3 theo hình nền hệ thống (Android 12+)</string>
     <string name="pref_root_mode_title">Chế độ ROOT</string>
     <string name="pref_root_mode_summary">Nâng cao: giữ ứng dụng luôn hoạt động bằng quyền root</string>
     <string name="pref_root_enabled">Đã bật chế độ ROOT</string>

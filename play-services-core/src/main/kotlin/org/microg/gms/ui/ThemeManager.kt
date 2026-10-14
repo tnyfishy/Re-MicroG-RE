@@ -13,17 +13,13 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.google.android.gms.R
-import com.google.android.material.color.DynamicColors
-import com.google.android.material.color.DynamicColorsOptions
 
 /**
- * App theme: light, dark, AMOLED (pure black) or follow the system, with Material 3 dynamic
- * colors (from the wallpaper) turned on by default. Settings live in the default shared
- * preferences, next to the other options of the settings screen.
+ * App theme: light, dark, AMOLED (pure black) or follow the system. The choice lives in the
+ * default shared preferences, next to the other options of the settings screen.
  */
 object ThemeManager {
     const val PREF_THEME_MODE = "pref_theme_mode"
-    const val PREF_DYNAMIC_COLOR = "pref_dynamic_color"
 
     private const val MODE_SYSTEM = "system"
     private const val MODE_LIGHT = "light"
@@ -33,19 +29,10 @@ object ThemeManager {
     private fun mode(context: Context): String =
             PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_THEME_MODE, MODE_SYSTEM) ?: MODE_SYSTEM
 
-    private fun isDynamicColorEnabled(context: Context): Boolean =
-            PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_DYNAMIC_COLOR, true)
-
     /** Call once from [Application.onCreate]. */
     @JvmStatic
     fun install(application: Application) {
         applyNightMode(application)
-        // Registered first, so the AMOLED overlay below is applied on top of the dynamic colors
-        DynamicColors.applyToActivitiesIfAvailable(
-                application,
-                DynamicColorsOptions.Builder()
-                        .setPrecondition { _, _ -> isDynamicColorEnabled(application) }
-                        .build())
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
                 applyAmoledOverlay(activity)

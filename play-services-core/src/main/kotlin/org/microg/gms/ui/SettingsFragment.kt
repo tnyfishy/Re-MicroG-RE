@@ -78,18 +78,6 @@ class SettingsFragment : ResourceSettingsFragment() {
             findNavController().navigate(requireContext(), R.id.openSafetyNetSettings)
             true
         }
-        findPreference<Preference>(PREF_LOCATION)!!.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-            findNavController().navigate(requireContext(), R.id.openLocationSettings)
-            true
-        }
-        findPreference<Preference>(PREF_VENDING)!!.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-            findNavController().navigate(requireContext(), R.id.openVendingSettings)
-            true
-        }
-        findPreference<Preference>(PREF_WORK_PROFILE)!!.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-            findNavController().navigate(requireContext(), R.id.openWorkProfileSettings)
-            true
-        }
         findPreference<Preference>(PREF_PRIVACY)?.setOnPreferenceClickListener {
             findNavController().navigate(requireContext(), R.id.privacyFragment)
             true
@@ -124,14 +112,6 @@ class SettingsFragment : ResourceSettingsFragment() {
         setupLanguagePreference()
         setupThemePreferences()
         setupRootPreference()
-
-        findPreference<Preference>(PREF_ABOUT)!!.apply {
-            onPreferenceClickListener = Preference.OnPreferenceClickListener {
-                findNavController().navigate(requireContext(), R.id.openAbout)
-                true
-            }
-            summary = getString(org.microg.tools.ui.R.string.about_version_str, AboutFragment.getSelfVersion(context))
-        }
 
         for (entry in getAllSettingsProviders(requireContext()).flatMap { it.getEntriesStatic(requireContext()) }) {
             entry.createPreference()
@@ -289,10 +269,6 @@ class SettingsFragment : ResourceSettingsFragment() {
                 ThemeManager.applyNightMode(requireActivity().application)
                 requireActivity().recreate()
             }
-            true
-        }
-        findPreference<SwitchPreferenceCompat>(ThemeManager.PREF_DYNAMIC_COLOR)?.setOnPreferenceChangeListener { _, _ ->
-            view?.post { requireActivity().recreate() }
             true
         }
     }

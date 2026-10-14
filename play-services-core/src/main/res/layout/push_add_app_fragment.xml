@@ -16,13 +16,21 @@
             android:paddingBottom="24dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Material 3 loading indicator, shown while the app list loads or is pulled to reload -->
-    <com.google.android.material.loadingindicator.LoadingIndicator
+    <!-- Material 3 loading indicator in a round container, shown while the list loads or is pulled to reload -->
+    <FrameLayout
         android:id="@+id/push_add_app_loading"
-        style="@style/Widget.Material3.LoadingIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
+        android:layout_marginTop="12dp"
+        android:background="@drawable/loading_indicator_container"
+        android:elevation="6dp"
+        android:visibility="gone">
+
+        <com.google.android.material.loadingindicator.LoadingIndicator
+            style="@style/Widget.Material3.LoadingIndicator"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center" />
+    </FrameLayout>
 </FrameLayout>

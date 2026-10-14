@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -32,6 +33,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.R
 import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.microg.gms.gcm.GcmDatabase
@@ -121,14 +123,26 @@ class PushNotificationAddAppFragment : Fragment() {
     }
 
     private fun setLoading(loading: Boolean) {
-        loadingIndicator?.visibility = if (loading) View.VISIBLE else View.GONE
         swipeRefresh?.isRefreshing = loading
+        val indicator = loadingIndicator ?: return
+        indicator.animate().cancel()
+        if (loading) {
+            indicator.alpha = 0f
+            indicator.scaleX = 0.6f
+            indicator.scaleY = 0.6f
+            indicator.visibility = View.VISIBLE
+            indicator.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200).start()
+        } else {
+            indicator.animate().alpha(0f).scaleX(0.6f).scaleY(0.6f).setDuration(200)
+                    .withEndAction { indicator.visibility = View.GONE }.start()
+        }
     }
 
     private fun loadApps() {
         val appContext = context?.applicationContext ?: return
         if (view == null) return
         setLoading(true)
+        val startedAt = SystemClock.elapsedRealtime()
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) {
                 val pm = appContext.packageManager
@@ -141,8 +155,11 @@ class PushNotificationAddAppFragment : Fragment() {
             // Never keep a selection of an app that is gone
             selected.retainAll(loaded.mapTo(HashSet()) { it.packageName })
             adapter.notifyDataSetChanged()
-            setLoading(false)
             activity?.invalidateOptionsMenu()
+            // A load that finishes at once would only flash the indicator, so keep it a moment
+            val remaining = MIN_LOADING_MS - (SystemClock.elapsedRealtime() - startedAt)
+            if (remaining > 0) delay(remaining)
+            setLoading(false)
         }
     }
 
@@ -254,6 +271,7 @@ class PushNotificationAddAppFragment : Fragment() {
 
     companion object {
         private const val STATE_SELECTED = "selected_apps"
+        private const val MIN_LOADING_MS = 600L
         private const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
         private val PAYLOAD_SELECTION = Any()
     }

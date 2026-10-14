@@ -304,8 +304,6 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="pref_theme_light">Light</string>
     <string name="pref_theme_dark">Dark</string>
     <string name="pref_theme_amoled">AMOLED</string>
-    <string name="pref_dynamic_color_title">Dynamic color</string>
-    <string name="pref_dynamic_color_summary">Material 3 colors follow the system wallpaper (Android 12+)</string>
     <string name="pref_root_mode_title">Root mode</string>
     <string name="pref_root_mode_summary">Advanced: keep the app always running using root access</string>
     <string name="pref_root_enabled">Root mode enabled</string>

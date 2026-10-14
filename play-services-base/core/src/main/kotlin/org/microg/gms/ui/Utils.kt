@@ -37,10 +37,10 @@ fun PackageManager.getApplicationInfoIfExists(packageName: String?, flags: Int =
 fun NavController.navigate(context: Context, @IdRes resId: Int, args: Bundle? = null) {
     navigate(resId, args, if (context.systemAnimationsEnabled) navOptions {
         anim {
-            enter = R.anim.nav_default_enter_anim
-            exit = R.anim.nav_default_exit_anim
-            popEnter = R.anim.nav_default_pop_enter_anim
-            popExit = R.anim.nav_default_pop_exit_anim
+            enter = org.microg.gms.base.core.R.anim.nav_smooth_enter
+            exit = org.microg.gms.base.core.R.anim.nav_smooth_exit
+            popEnter = org.microg.gms.base.core.R.anim.nav_smooth_pop_enter
+            popExit = org.microg.gms.base.core.R.anim.nav_smooth_pop_exit
         }
     } else null)
 }
