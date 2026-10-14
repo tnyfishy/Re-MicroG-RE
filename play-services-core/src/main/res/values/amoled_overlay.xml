@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pure black surfaces for AMOLED screens; applied on top of the dark theme. -->
+    <style name="ThemeOverlay.ReMicroG.Amoled" parent="">
+        <item name="android:colorBackground">#FF000000</item>
+        <item name="colorSurface">#FF000000</item>
+        <item name="colorSurfaceDim">#FF000000</item>
+        <item name="colorSurfaceBright">#FF1C1C1E</item>
+        <item name="colorSurfaceContainerLowest">#FF000000</item>
+        <item name="colorSurfaceContainerLow">#FF0A0A0A</item>
+        <item name="colorSurfaceContainer">#FF111111</item>
+        <item name="colorSurfaceContainerHigh">#FF171717</item>
+        <item name="colorSurfaceContainerHighest">#FF1E1E1E</item>
+    </style>
+</resources>

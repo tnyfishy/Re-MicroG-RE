@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --><resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_settings_name">Налаштування microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="just_a_sec">Зачекайте секунду…</string>
     <string name="google_account_label">Google</string>
     <string name="ask_permission_tos">Продовжуючи, ви дозволяєте даному додатку та Google використовувати ваші дані згідно з їх відповідними умовами надання послуг та політикою конфіденційності.</string>

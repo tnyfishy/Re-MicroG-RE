@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">キャンセル</string>
     <string name="snackbar_remove_account">アカウント %s を削除しました</string>
     <string name="snackbar_undo_button">元に戻す</string>
-    <string name="gms_settings_name">MicroG 設定</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">MicroG サービスを設定します。</string>
     <string name="just_a_sec">少々お待ちください…</string>
     <string name="ask_permission_tos">続行することで、このアプリおよび Google が、それぞれの利用規約およびプライバシー ポリシーに従って、お客様の情報を使用することに同意したものとみなされます。</string>

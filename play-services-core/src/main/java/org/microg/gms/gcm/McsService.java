@@ -184,6 +184,8 @@ public class McsService extends Service implements Handler.Callback {
         heartbeatIntent = PendingIntentCompat.getService(this, 0, new Intent(ACTION_HEARTBEAT, null, this, McsService.class), 0, false);
         alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        // Root users can opt in to extra keep-alive measures (see RootKeepAlive)
+        org.microg.gms.ui.RootKeepAlive.applyIfEnabled(this);
         if (SDK_INT >= 23 && checkSelfPermission("android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST") == PackageManager.PERMISSION_GRANTED) {
             try {
                 if (SDK_INT >= 31) {

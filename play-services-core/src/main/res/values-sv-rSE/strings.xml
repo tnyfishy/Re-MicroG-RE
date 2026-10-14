@@ -14,7 +14,7 @@ Dina data försvinner inte"</string>
     <string name="dialog_cancel_button">Avbryt</string>
     <string name="snackbar_remove_account">Kontot %s har tagits bort</string>
     <string name="snackbar_undo_button">Ångra</string>
-    <string name="gms_settings_name">Inställningar för microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Setup MicroG services.</string>
     <string name="just_a_sec">Ett ögonblick …</string>
     <string name="ask_permission_tos">Om du fortsätter tillåter du att den här appen och Google använder din information i enlighet med deras respektive användarvillkor och integritetspolicyer.</string>

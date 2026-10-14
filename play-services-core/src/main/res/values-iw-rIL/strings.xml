@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">בטל</string>
     <string name="snackbar_remove_account">חשבון %s הוסר</string>
     <string name="snackbar_undo_button">בטל</string>
-    <string name="gms_settings_name">הגדרות microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">הגדר את שירותי MicroG.</string>
     <string name="just_a_sec">שנייה אחת...</string>
     <string name="ask_permission_tos">בהמשך, אתה מאשר לאפליקציה זו ולגוגל להשתמש במידע שלך בהתאם לתנאי השירות ולמדיניות הפרטיות שלהם.</string>

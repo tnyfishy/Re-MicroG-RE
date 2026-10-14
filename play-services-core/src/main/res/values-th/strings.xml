@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_settings_name">การตั้งค่า microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="just_a_sec">รอสักครู่…</string>
     <string name="google_account_label">Google</string>
     <string name="ask_service_permission_title"><xliff:g example="F-Droid">%1$s</xliff:g> ต้องการใช้:</string>

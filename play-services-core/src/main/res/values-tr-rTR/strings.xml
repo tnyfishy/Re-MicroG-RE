@@ -14,7 +14,7 @@ Verileriniz kaybolmayacaktır"</string>
     <string name="dialog_cancel_button">İptal et</string>
     <string name="snackbar_remove_account">%s hesabı kaldırıldı</string>
     <string name="snackbar_undo_button">Geri al</string>
-    <string name="gms_settings_name">MicroG Ayarları</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">MicroG hizmetlerini kur.</string>
     <string name="just_a_sec">Bir saniye…</string>
     <string name="ask_permission_tos">Devam ederek, bu uygulamanın ve Google\'ın bilgilerinizi kendi hizmet şartları ve gizlilik politikalarına uygun olarak kullanmasına izin vermiş oluyorsunuz.</string>

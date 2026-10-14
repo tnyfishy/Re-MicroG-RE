@@ -17,6 +17,7 @@
 package org.microg.gms.ui.updater
 
 import android.app.Application
+import org.microg.gms.ui.ThemeManager
 
 /**
  * Schedules the daily background update check on app start, so the alarm exists even if
@@ -30,6 +31,7 @@ class UpdaterApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ThemeManager.install(this)
         UpdateCheckScheduler.schedule(this)
         AppUpdater.persistDevChannelIfNeeded(this)
     }

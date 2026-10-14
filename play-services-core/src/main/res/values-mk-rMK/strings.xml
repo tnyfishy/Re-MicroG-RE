@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">Откажи</string>
     <string name="snackbar_remove_account">Профил/сметка %s отстранета</string>
     <string name="snackbar_undo_button">Врати</string>
-    <string name="gms_settings_name">MicroG Settings</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="just_a_sec">Само момент…</string>
     <string name="ask_permission_tos">Со продолжување, дозволувате оваа апликација и Google да ги користат вашите информации во согласност со нивните услови за користење и политики за приватност.</string>
     <string name="sorry">Се извинуваме...</string>

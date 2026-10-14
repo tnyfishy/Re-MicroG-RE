@@ -10,7 +10,7 @@
     <string name="dialog_cancel_button">Thôi</string>
     <string name="snackbar_remove_account">Đã xóa tài khoản %s</string>
     <string name="snackbar_undo_button">Hoàn tác</string>
-    <string name="gms_settings_name">Cài đặt MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Thiết lập các dịch vụ MicroG.</string>
     <string name="just_a_sec">Chờ một chút…</string>
     <string name="ask_permission_tos">Bằng cách tiếp tục, bạn đồng ý cho ứng dụng và Google sử dụng thông tin của bạn theo điều khoản và chính sách quyền riêng tư tương ứng của họ.</string>

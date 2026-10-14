@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">Отмена</string>
     <string name="snackbar_remove_account">Аккаунт %s удален</string>
     <string name="snackbar_undo_button">Отменить</string>
-    <string name="gms_settings_name">Настройки MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Настройка служб MicroG.</string>
     <string name="just_a_sec">Секундочку…</string>
     <string name="ask_permission_tos">Продолжая, вы разрешаете этому приложению и Google использовать вашу информацию в соответствии с их условиями предоставления услуг и политикой конфиденциальности.</string>

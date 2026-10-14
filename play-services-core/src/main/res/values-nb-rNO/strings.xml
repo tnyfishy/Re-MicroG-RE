@@ -14,7 +14,7 @@ Dataene dine går ikke tapt."</string>
     <string name="dialog_cancel_button">Kanseller</string>
     <string name="snackbar_remove_account">Konto %s fjernet</string>
     <string name="snackbar_undo_button">Angre</string>
-    <string name="gms_settings_name">MicroG-innstillinger</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Oppsett for MicroG-tjenester</string>
     <string name="just_a_sec">Et øyeblikk…</string>
     <string name="ask_permission_tos">Ved å fortsette godkjenner du at denne appen og Google bruker informasjonen din i tråd med deres respektive tjenestevilkår og personvernregler.</string>

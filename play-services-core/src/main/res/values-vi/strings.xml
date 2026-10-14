@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_settings_name">Cài đặt microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Thiết lập dịch vụ microG.</string>
     <string name="auth_general_error_desc">Không thể kết nối với máy chủ Google.\n\nVui lòng thử lại sau.</string>
     <string name="auth_finalize">Đang liên kết với Google để lưu thông tin tài khoản của bạn.\n\nQuá trình này có thể hoàn tất sau vài phút.</string>
@@ -82,8 +82,17 @@
     <string name="prefcat_push_apps_title">Ứng dụng sử dụng thông báo đẩy</string>
     <string name="pref_push_apps_add_title">Thêm ứng dụng</string>
     <string name="pref_push_add_app_list_title">Ứng dụng đã cài đặt</string>
-    <string name="push_add_app_show_system_apps">Hiện ứng dụng hệ thống</string>
-    <string name="push_add_app_hide_system_apps">Ẩn ứng dụng hệ thống</string>
+    <string name="pref_theme_title">Chủ đề giao diện</string>
+    <string name="pref_theme_system">Theo hệ thống</string>
+    <string name="pref_theme_light">Sáng</string>
+    <string name="pref_theme_dark">Tối</string>
+    <string name="pref_theme_amoled">AMOLED</string>
+    <string name="pref_dynamic_color_title">Màu động</string>
+    <string name="pref_dynamic_color_summary">Màu Material 3 theo hình nền hệ thống (Android 12+)</string>
+    <string name="pref_root_mode_title">Chế độ ROOT</string>
+    <string name="pref_root_mode_summary">Nâng cao: giữ ứng dụng luôn hoạt động bằng quyền root</string>
+    <string name="pref_root_enabled">Đã bật chế độ ROOT</string>
+    <string name="pref_root_unavailable">Không có quyền root</string>
     <string name="push_add_app_add_selected">Thêm (%1$d)</string>
     <string name="push_add_app_clear_selection">Bỏ chọn</string>
     <string name="push_add_app_added">Đã thêm %1$d ứng dụng</string>

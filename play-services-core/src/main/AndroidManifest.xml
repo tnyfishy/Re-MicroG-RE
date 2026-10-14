@@ -141,6 +141,11 @@
          replacement must declare it to stay visible to all packages on API 30+. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- Xiaomi (MIUI/HyperOS) asks the user before an app may read the installed app list -->
+    <uses-permission android:name="com.android.permission.GET_INSTALLED_APPS" />
+    <!-- Not granted on install. The user (or root mode) grants it with: pm grant <package> android.permission.WRITE_SECURE_SETTINGS -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" tools:ignore="ExactAlarm" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:ignore="ExactAlarm" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

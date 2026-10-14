@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">Скасувати</string>
     <string name="snackbar_remove_account">Обліковий запис %s видалено</string>
     <string name="snackbar_undo_button">Скасувати</string>
-    <string name="gms_settings_name">Налаштування MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Налаштування служб MicroG.</string>
     <string name="just_a_sec">Зачекайте...</string>
     <string name="ask_permission_tos">Продовжуючи, ви дозволяєте цьому застосунку та Google використовувати вашу інформацію відповідно до їхніх умов надання послуг та політик конфіденційності.</string>

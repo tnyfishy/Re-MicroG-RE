@@ -27,7 +27,11 @@ import androidx.preference.SwitchPreferenceCompat
 import com.google.android.gms.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.transition.MaterialSharedAxis
+import android.widget.Toast
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.microg.gms.checkin.CheckinPreferences
 import org.microg.gms.common.ForegroundServiceOemUtils
 import org.microg.gms.gcm.GcmDatabase
@@ -118,6 +122,8 @@ class SettingsFragment : ResourceSettingsFragment() {
             true
         }
         setupLanguagePreference()
+        setupThemePreferences()
+        setupRootPreference()
 
         findPreference<Preference>(PREF_ABOUT)!!.apply {
             onPreferenceClickListener = Preference.OnPreferenceClickListener {
@@ -276,6 +282,44 @@ class SettingsFragment : ResourceSettingsFragment() {
             .show()
     }
 
+    private fun setupThemePreferences() {
+        findPreference<ListPreference>(ThemeManager.PREF_THEME_MODE)?.setOnPreferenceChangeListener { _, _ ->
+            // The value is stored right after this returns, so apply the theme afterwards
+            view?.post {
+                ThemeManager.applyNightMode(requireActivity().application)
+                requireActivity().recreate()
+            }
+            true
+        }
+        findPreference<SwitchPreferenceCompat>(ThemeManager.PREF_DYNAMIC_COLOR)?.setOnPreferenceChangeListener { _, _ ->
+            view?.post { requireActivity().recreate() }
+            true
+        }
+    }
+
+    private fun setupRootPreference() {
+        val preference = findPreference<SwitchPreferenceCompat>(PREF_ROOT_MODE) ?: return
+        preference.isChecked = RootKeepAlive.isEnabled(requireContext())
+        preference.setOnPreferenceChangeListener { _, newValue ->
+            val appContext = requireContext().applicationContext
+            if (newValue as Boolean) {
+                // Asking for root can block, so it runs off the main thread and the switch only
+                // turns on once root was really granted
+                preference.isEnabled = false
+                lifecycleScope.launch {
+                    val granted = withContext(Dispatchers.IO) { RootKeepAlive.enable(appContext) }
+                    preference.isEnabled = true
+                    preference.isChecked = granted
+                    Toast.makeText(appContext, if (granted) R.string.pref_root_enabled else R.string.pref_root_unavailable, Toast.LENGTH_SHORT).show()
+                }
+                false
+            } else {
+                RootKeepAlive.disable(appContext)
+                true
+            }
+        }
+    }
+
     private fun setupLanguagePreference() {
         val preference = findPreference<ListPreference>(PREF_LANGUAGE) ?: return
         val tags = resources.getStringArray(R.array.pref_language_values)
@@ -353,6 +397,7 @@ class SettingsFragment : ResourceSettingsFragment() {
         const val PREF_UPDATE = "pref_update"
         const val PREF_LANGUAGE = "pref_language"
         const val PREF_PRIVACY = "pref_privacy"
+        const val PREF_ROOT_MODE = "pref_root_mode"
         const val PREF_IGNORE_BATTERY_OPTIMIZATION = "pref_ignore_battery_optimization"
 
         private const val ACTIVITY_LAUNCHER_CONTROL = "org.microg.gms.ui.SettingsActivityLauncher"

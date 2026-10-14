@@ -14,7 +14,7 @@ Vaši podatki ne bodo izgubljeni"</string>
     <string name="dialog_cancel_button">Prekliči</string>
     <string name="snackbar_remove_account">Račun %s je bil odstranjen</string>
     <string name="snackbar_undo_button">Razveljavi</string>
-    <string name="gms_settings_name">Nastavitve MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Nastavite storitve MicroG.</string>
     <string name="just_a_sec">Samo trenutek…</string>
     <string name="ask_permission_tos">Z nadaljevanjem dovolite tej aplikaciji in Googlu uporabljati vaše podatke v skladu z njunimi pogoji uporabe in pravili zasebnosti.</string>

@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">ยกเลิก</string>
     <string name="snackbar_remove_account">บัญชีที่ %s ถูกลบแล้ว</string>
     <string name="snackbar_undo_button">ยกเลิก</string>
-    <string name="gms_settings_name">การตั้งค่า MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">ตั้งค่าบริการ MicroG</string>
     <string name="just_a_sec">รอสักครู่...</string>
     <string name="ask_permission_tos">โดยการดำเนินการต่อ คุณอนุญาตให้แอปนี้และ Google ใช้ข้อมูลของคุณตามข้อกำหนดการให้บริการและนโยบายความเป็นส่วนตัวที่เกี่ยวข้อง</string>

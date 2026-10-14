@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">Ακύρωση</string>
     <string name="snackbar_remove_account">Ο λογαριασμός %s αφαιρέθηκε</string>
     <string name="snackbar_undo_button">Αναίρεση</string>
-    <string name="gms_settings_name">Ρυθμίσεις microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Ρύθμιση υπηρεσιών MicroG.</string>
     <string name="just_a_sec">Μία στιγμή…</string>
     <string name="ask_permission_tos">Με τη συνέχιση, επιτρέπετε σε αυτή την εφαρμογή και στο Google να χρησιμοποιούν τα δεδομένα σας σύμφωνα με τους όρους χρήσης και τις πολιτικές απορρήτου τους.</string>

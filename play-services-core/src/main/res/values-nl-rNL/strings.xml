@@ -10,7 +10,7 @@
     <string name="dialog_cancel_button">Annuleren</string>
     <string name="snackbar_remove_account">U bent niet geregistreerd %s</string>
     <string name="snackbar_undo_button">Ongedaan maken</string>
-    <string name="gms_settings_name">MicroG Instellingen</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Stel MicroG-services in.</string>
     <string name="just_a_sec">Een ogenblik geduld…</string>
     <string name="ask_permission_tos">Door verder te gaan, staat u deze app en Google toe om uw informatie te gebruiken in overeenstemming met hun respectieve servicevoorwaarden en privacybeleid.</string>

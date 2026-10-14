@@ -14,7 +14,7 @@ Vaše dáta sa týmto nestratia"</string>
     <string name="dialog_cancel_button">Zrušiť</string>
     <string name="snackbar_remove_account">Účet %s bol odstránený</string>
     <string name="snackbar_undo_button">Vrátiť späť</string>
-    <string name="gms_settings_name">Nastavenia microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Nastavte služby MicroG.</string>
     <string name="just_a_sec">Prosím počkajte...</string>
     <string name="ask_permission_tos">Pokračovaním povolíte tejto aplikácii a spoločnosti Google používať vaše informácie v súlade s ich príslušnými podmienkami používania a zásadami ochrany osobných údajov.</string>

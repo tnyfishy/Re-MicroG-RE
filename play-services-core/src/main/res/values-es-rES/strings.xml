@@ -14,7 +14,7 @@ Tus datos no se perderán"</string>
     <string name="dialog_cancel_button">Cancelar</string>
     <string name="snackbar_remove_account">Cuenta %s eliminada</string>
     <string name="snackbar_undo_button">Deshacer</string>
-    <string name="gms_settings_name">Ajustes de MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Configurar servicios microG</string>
     <string name="just_a_sec">Un momento…</string>
     <string name="ask_permission_tos">Al continuar, permite que esta aplicación y Google utilicen su información de acuerdo con sus respectivos términos de servicio y políticas de privacidad.</string>

@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">취소</string>
     <string name="snackbar_remove_account">계정 \'%s\'을 제거하였습니다</string>
     <string name="snackbar_undo_button">계정 삭제</string>
-    <string name="gms_settings_name">MicroG 설정</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">MicroG 서비스를 설정하세요.</string>
     <string name="just_a_sec">잠시만 기다리세요…</string>
     <string name="ask_permission_tos">계속 진행함으로써 이 앱과 Google이 각자의 서비스 약관 및 개인정보 보호정책에 따라 정보를 사용하는 것을 허용합니다.</string>

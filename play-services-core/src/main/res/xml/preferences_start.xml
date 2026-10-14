@@ -105,6 +105,30 @@
         android:layout="@layout/preference_material_middle"
         android:summary="@string/pref_language_system_default"
         android:title="@string/pref_language_title" />
+    <ListPreference
+        android:defaultValue="system"
+        android:entries="@array/pref_theme_entries"
+        android:entryValues="@array/pref_theme_values"
+        android:icon="@drawable/ic_palette"
+        android:key="pref_theme_mode"
+        android:layout="@layout/preference_material_middle"
+        android:title="@string/pref_theme_title"
+        app:useSimpleSummaryProvider="true" />
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:icon="@drawable/ic_palette"
+        android:key="pref_dynamic_color"
+        android:layout="@layout/preference_material_middle"
+        android:summary="@string/pref_dynamic_color_summary"
+        android:title="@string/pref_dynamic_color_title" />
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:icon="@drawable/ic_certificate"
+        android:key="pref_root_mode"
+        android:layout="@layout/preference_material_middle"
+        android:persistent="false"
+        android:summary="@string/pref_root_mode_summary"
+        android:title="@string/pref_root_mode_title" />
     <PreferenceCategory
         android:key="prefcat_footer"
         android:layout="@layout/preference_material_category_none" />

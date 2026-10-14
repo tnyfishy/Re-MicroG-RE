@@ -6,7 +6,9 @@
 package org.microg.gms.ui
 
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -17,12 +19,16 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.R
 import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +38,14 @@ import org.microg.gms.gcm.GcmDatabase
 
 /**
  * Lets the user pick installed apps and allow them to register for push notifications
- * before the apps ask for it. Only user apps are listed unless system apps are shown.
- * Tap adds one app; long press starts selecting several apps to add together.
+ * before the apps ask for it. Only apps the user installed are listed.
+ * Tap adds one app; long press starts selecting several apps to add together;
+ * pull down to reload the list.
  */
 class PushNotificationAddAppFragment : Fragment() {
-    private class AppEntry(val info: ApplicationInfo, val label: String, val isSystem: Boolean) {
+    // Label and icon are loaded together on a background thread, so scrolling never has to
+    // load them on the main thread (that made the list stutter on high refresh rate screens).
+    private class AppEntry(val info: ApplicationInfo, val label: String, val icon: Drawable) {
         val packageName: String get() = info.packageName
     }
 
@@ -48,16 +57,17 @@ class PushNotificationAddAppFragment : Fragment() {
     }
 
     private val adapter = AppAdapter()
-    private var allApps: List<AppEntry> = emptyList()
-    private var visibleApps: List<AppEntry> = emptyList()
+    private var apps: List<AppEntry> = emptyList()
     private val selected = LinkedHashSet<String>()
-    private var showSystemApps = false
     private var selectedColor = Color.LTGRAY
-    private lateinit var progress: View
+    private var swipeRefresh: SwipeRefreshLayout? = null
+    private var loadingIndicator: View? = null
+
+    private val requestAppListPermission =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { loadApps() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showSystemApps = savedInstanceState?.getBoolean(STATE_SHOW_SYSTEM_APPS) ?: false
         savedInstanceState?.getStringArrayList(STATE_SELECTED)?.let { selected.addAll(it) }
         setHasOptionsMenu(true)
     }
@@ -69,43 +79,78 @@ class PushNotificationAddAppFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         view.setBackgroundColor(MaterialColors.getColor(view, android.R.attr.colorBackground))
         selectedColor = ColorUtils.setAlphaComponent(MaterialColors.getColor(view, android.R.attr.colorAccent, Color.GRAY), 56)
-        progress = view.findViewById(R.id.push_add_app_progress)
+        loadingIndicator = view.findViewById(R.id.push_add_app_loading)
         val list = view.findViewById<RecyclerView>(R.id.push_add_app_list)
         list.layoutManager = LinearLayoutManager(requireContext())
+        list.setHasFixedSize(true)
         list.adapter = adapter
-        loadApps()
+        // Selecting an app only changes its highlight, so skip the cross-fade animation
+        (list.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+
+        // The loading indicator below replaces the stock pull-to-refresh spinner, which is hidden
+        val swipe = view.findViewById<SwipeRefreshLayout>(R.id.push_add_app_swipe)
+        swipe.setColorSchemeColors(Color.TRANSPARENT)
+        swipe.setProgressBackgroundColorSchemeColor(Color.TRANSPARENT)
+        for (i in 0 until swipe.childCount) {
+            val child = swipe.getChildAt(i)
+            if (child !== list) child.elevation = 0f
+        }
+        swipe.setOnRefreshListener { loadApps() }
+        swipeRefresh = swipe
+
+        if (needsAppListPermission()) requestAppListPermission.launch(APP_LIST_PERMISSION) else loadApps()
+    }
+
+    override fun onDestroyView() {
+        swipeRefresh = null
+        loadingIndicator = null
+        super.onDestroyView()
+    }
+
+    /** Xiaomi's MIUI/HyperOS asks before an app may see the installed apps; other systems do not have it. */
+    private fun needsAppListPermission(): Boolean {
+        val context = requireContext()
+        val declaredBySystem = try {
+            context.packageManager.getPermissionInfo(APP_LIST_PERMISSION, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+        return declaredBySystem &&
+                ContextCompat.checkSelfPermission(context, APP_LIST_PERMISSION) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun setLoading(loading: Boolean) {
+        loadingIndicator?.visibility = if (loading) View.VISIBLE else View.GONE
+        swipeRefresh?.isRefreshing = loading
     }
 
     private fun loadApps() {
-        val appContext = requireContext().applicationContext
-        progress.visibility = View.VISIBLE
+        val appContext = context?.applicationContext ?: return
+        if (view == null) return
+        setLoading(true)
         viewLifecycleOwner.lifecycleScope.launch {
-            // Loading labels of every installed app is slow, so it never runs on the main thread
-            val apps = withContext(Dispatchers.IO) {
+            val loaded = withContext(Dispatchers.IO) {
                 val pm = appContext.packageManager
                 pm.getInstalledApplications(0)
-                        .filter { it.packageName != appContext.packageName }
-                        .map { AppEntry(it, pm.getApplicationLabel(it).toString(), it.isSystemApp) }
+                        .filter { it.packageName != appContext.packageName && !it.isSystemApp }
+                        .map { AppEntry(it, pm.getApplicationLabel(it).toString(), it.loadIcon(pm)) }
                         .sortedBy { it.label.lowercase() }
             }
-            allApps = apps
-            progress.visibility = View.GONE
-            refreshList()
+            apps = loaded
+            // Never keep a selection of an app that is gone
+            selected.retainAll(loaded.mapTo(HashSet()) { it.packageName })
+            adapter.notifyDataSetChanged()
+            setLoading(false)
+            activity?.invalidateOptionsMenu()
         }
     }
 
-    private fun refreshList() {
-        visibleApps = allApps.filter { showSystemApps || !it.isSystem }
-        // Never keep a selection the user can no longer see
-        val visibleNames = visibleApps.mapTo(HashSet()) { it.packageName }
-        selected.retainAll(visibleNames)
-        adapter.notifyDataSetChanged()
-        activity?.invalidateOptionsMenu()
-    }
-
-    private fun toggleSelection(entry: AppEntry) {
-        if (!selected.add(entry.packageName)) selected.remove(entry.packageName)
-        adapter.notifyDataSetChanged()
+    private fun toggleSelection(position: Int) {
+        if (position == RecyclerView.NO_POSITION) return
+        val packageName = apps[position].packageName
+        if (!selected.add(packageName)) selected.remove(packageName)
+        adapter.notifyItemChanged(position, PAYLOAD_SELECTION)
         activity?.invalidateOptionsMenu()
     }
 
@@ -135,8 +180,6 @@ class PushNotificationAddAppFragment : Fragment() {
 
     override fun onPrepareOptionsMenu(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
-        menu.findItem(R.id.menu_toggle_system_apps)?.setTitle(
-                if (showSystemApps) R.string.push_add_app_hide_system_apps else R.string.push_add_app_show_system_apps)
         val selecting = selected.isNotEmpty()
         menu.findItem(R.id.menu_add_selected)?.let {
             it.isVisible = selecting
@@ -147,18 +190,13 @@ class PushNotificationAddAppFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.menu_toggle_system_apps -> {
-                showSystemApps = !showSystemApps
-                refreshList()
-                true
-            }
             R.id.menu_add_selected -> {
                 addApps(selected)
                 true
             }
             R.id.menu_clear_selection -> {
                 selected.clear()
-                adapter.notifyDataSetChanged()
+                adapter.notifyItemRangeChanged(0, apps.size, PAYLOAD_SELECTION)
                 activity?.invalidateOptionsMenu()
                 true
             }
@@ -168,38 +206,56 @@ class PushNotificationAddAppFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean(STATE_SHOW_SYSTEM_APPS, showSystemApps)
         outState.putStringArrayList(STATE_SELECTED, ArrayList(selected))
     }
 
     private inner class AppAdapter : RecyclerView.Adapter<AppHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppHolder =
-                AppHolder(LayoutInflater.from(parent.context).inflate(R.layout.push_add_app_item, parent, false))
+        init {
+            setHasStableIds(true)
+        }
 
-        override fun getItemCount(): Int = visibleApps.size
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppHolder {
+            val holder = AppHolder(LayoutInflater.from(parent.context).inflate(R.layout.push_add_app_item, parent, false))
+            holder.itemView.setOnClickListener {
+                val position = holder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return@setOnClickListener
+                // While selecting, a tap toggles the app; otherwise it adds just that app
+                if (selected.isNotEmpty()) toggleSelection(position) else addApps(listOf(apps[position].packageName))
+            }
+            holder.itemView.setOnLongClickListener {
+                toggleSelection(holder.bindingAdapterPosition)
+                true
+            }
+            return holder
+        }
+
+        override fun getItemCount(): Int = apps.size
+
+        override fun getItemId(position: Int): Long = apps[position].packageName.hashCode().toLong()
 
         override fun onBindViewHolder(holder: AppHolder, position: Int) {
-            val entry = visibleApps[position]
+            val entry = apps[position]
             holder.name.text = entry.label
             holder.pkg.text = entry.packageName
-            holder.icon.setImageDrawable(entry.info.loadIcon(holder.itemView.context.packageManager))
+            holder.icon.setImageDrawable(entry.icon)
+            bindSelection(holder, entry)
+        }
+
+        override fun onBindViewHolder(holder: AppHolder, position: Int, payloads: MutableList<Any>) {
+            if (payloads.isNotEmpty()) bindSelection(holder, apps[position]) else super.onBindViewHolder(holder, position, payloads)
+        }
+
+        private fun bindSelection(holder: AppHolder, entry: AppEntry) {
             val isSelected = selected.contains(entry.packageName)
             holder.itemView.setBackgroundColor(if (isSelected) selectedColor else Color.TRANSPARENT)
             holder.check.visibility = if (isSelected) View.VISIBLE else View.GONE
-            holder.itemView.setOnClickListener {
-                // While selecting, a tap toggles the app; otherwise it adds just that app
-                if (selected.isNotEmpty()) toggleSelection(entry) else addApps(listOf(entry.packageName))
-            }
-            holder.itemView.setOnLongClickListener {
-                toggleSelection(entry)
-                true
-            }
         }
     }
 
     companion object {
-        private const val STATE_SHOW_SYSTEM_APPS = "show_system_apps"
         private const val STATE_SELECTED = "selected_apps"
+        private const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
+        private val PAYLOAD_SELECTION = Any()
     }
 }
 

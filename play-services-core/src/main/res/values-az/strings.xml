@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_settings_name">microG Tənzimləmələri</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">microG xidmətlərini quraşdırın.</string>
     <string name="just_a_sec">Bir saniyə…</string>
     <string name="google_account_label">Google</string>

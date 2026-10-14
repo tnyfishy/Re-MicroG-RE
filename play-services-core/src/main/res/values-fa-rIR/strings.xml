@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">لغو</string>
     <string name="snackbar_remove_account">حساب %s حذف شد</string>
     <string name="snackbar_undo_button">بازگردانی</string>
-    <string name="gms_settings_name">تنظیمات microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">راه‌اندازی سرویس‌های microG.</string>
     <string name="just_a_sec">یک لحظه صبر کنید…</string>
     <string name="ask_permission_tos">با ادامه‌دادن، به این برنامه و Google اجازه می‌دهید مطابق شرایط استفاده و سیاست‌های حریم خصوصی مربوط به خودشان از اطلاعات شما استفاده کنند.</string>

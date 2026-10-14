@@ -14,7 +14,7 @@ Vaši podaci neće biti izgubljeni"</string>
     <string name="dialog_cancel_button">Odustani</string>
     <string name="snackbar_remove_account">Račun %s uklonjen</string>
     <string name="snackbar_undo_button">Poništi</string>
-    <string name="gms_settings_name">MikroG postavke</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Postavljanje microG usluga.</string>
     <string name="just_a_sec">Samo trenutak…</string>
     <string name="ask_permission_tos">Nastavkom korištenja dopuštate ovoj aplikaciji i Googleu da koriste vaše podatke u skladu s njihovim uvjetima pružanja usluge i pravilima o privatnosti..

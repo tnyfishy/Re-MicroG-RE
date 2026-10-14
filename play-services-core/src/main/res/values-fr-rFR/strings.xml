@@ -14,7 +14,7 @@ Vos données ne seront pas perdues"</string>
     <string name="dialog_cancel_button">Annuler</string>
     <string name="snackbar_remove_account">Compte %s supprimé</string>
     <string name="snackbar_undo_button">Annuler</string>
-    <string name="gms_settings_name">Paramètres MicroG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Configurer les services microG.</string>
     <string name="just_a_sec">Juste un instant…</string>
     <string name="ask_permission_tos">En continuant, vous autorisez cette application et Google à utiliser vos informations conformément à leurs conditions d\'utilisation et politiques de confidentialité respectives.</string>

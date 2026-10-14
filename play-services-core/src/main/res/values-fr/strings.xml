@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --><resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_settings_name">Paramètres de microG</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="just_a_sec">Juste une seconde…</string>
     <string name="google_account_label">Google</string>
     <string name="ask_permission_tos">En poursuivant, vous autorisez cette application et Google à utiliser vos informations en accord avec leurs termes de service et politiques de vie privée respectifs.</string>

@@ -63,7 +63,7 @@
     <string name="camera_permission_dialog_button">پذیرش</string>
     <string name="auth_connecting">دستگاه شما در حال برقراری ارتباط با سرورهای گوگل برای ورود است.\n\nاین کار ممکن است چند ثانیه طول بکشد.</string>
     <string name="limited_services_app_name">خدمات محدود میکروجی</string>
-    <string name="gms_settings_name">تنظیمات میکروجی</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="account_manager_title">مدیریت حساب گوگل</string>
     <string name="auth_sign_in">ورود</string>
     <string name="auth_general_error_desc">مشکلی در ارتباط با سرورهای گوگل رخ داد.\n\nبعداً دوباره امتحان کنید.</string>

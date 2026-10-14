@@ -3,18 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/push_add_app_list"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/push_add_app_swipe"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="24dp" />
+        android:layout_height="match_parent">
 
-    <ProgressBar
-        android:id="@+id/push_add_app_progress"
-        style="?android:attr/progressBarStyle"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/push_add_app_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Material 3 loading indicator, shown while the app list loads or is pulled to reload -->
+    <com.google.android.material.loadingindicator.LoadingIndicator
+        android:id="@+id/push_add_app_loading"
+        style="@style/Widget.Material3.LoadingIndicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true" />
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="16dp"
+        android:visibility="gone" />
 </FrameLayout>

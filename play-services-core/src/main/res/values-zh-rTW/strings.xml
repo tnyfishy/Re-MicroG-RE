@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">取消</string>
     <string name="snackbar_remove_account">已移除帳戶 %s</string>
     <string name="snackbar_undo_button">復原</string>
-    <string name="gms_settings_name">MicroG 設定</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">設定 MicroG 服務。</string>
     <string name="just_a_sec">請稍候…</string>
     <string name="ask_permission_tos">選擇繼續即表示您允許這個應用程式和 Google 根據各自的《服務條款》及《隱私權政策》使用你的資訊.</string>

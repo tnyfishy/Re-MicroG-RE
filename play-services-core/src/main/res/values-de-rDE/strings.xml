@@ -14,7 +14,7 @@ Ihre Daten gehen nicht verloren "</string>
     <string name="dialog_cancel_button">Abbrechen</string>
     <string name="snackbar_remove_account">Konto %s entfernt</string>
     <string name="snackbar_undo_button">Rückgängig machen</string>
-    <string name="gms_settings_name">MicroG-Einstellungen</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">MicroG-Dienste einrichten.</string>
     <string name="just_a_sec">Einen Moment…</string>
     <string name="ask_permission_tos">Indem Sie fortfahren, erlauben Sie dieser App und Google, Ihre Informationen in Übereinstimmung mit ihren jeweiligen Nutzungsbedingungen und Datenschutzrichtlinien zu verwenden </string>

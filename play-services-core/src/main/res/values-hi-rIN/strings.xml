@@ -14,7 +14,7 @@
     <string name="dialog_cancel_button">रद्द करें</string>
     <string name="snackbar_remove_account">अकाउंट %s हटाया गया</string>
     <string name="snackbar_undo_button">पहले जैसा करें</string>
-    <string name="gms_settings_name">MicroG सेटिंग्स</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">MicroG सेवाओं का सेटअप करें।</string>
     <string name="just_a_sec">बस एक सेकंड…</string>
     <string name="ask_permission_tos">जारी रखते हुए, आप इस ऐप और Google को अपनी जानकारी उनकी संबंधित सेवा की शर्तों और गोपनीयता नीतियों के अनुसार उपयोग करने की अनुमति देते हैं।</string>

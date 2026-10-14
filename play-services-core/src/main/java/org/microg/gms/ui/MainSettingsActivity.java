@@ -59,6 +59,7 @@ public class MainSettingsActivity extends AppCompatActivity {
             settingsProvider.preProcessSettingsIntent(intent);
         }
 
+        HighRefreshRate.request(this);
         setContentView(R.layout.settings_root_activity);
 
         Toolbar toolbar = findViewById(R.id.toolbar);

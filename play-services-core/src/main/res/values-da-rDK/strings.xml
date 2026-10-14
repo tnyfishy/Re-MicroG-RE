@@ -14,7 +14,7 @@ Dine data vil ikke blive tabt"</string>
     <string name="dialog_cancel_button">Annuller</string>
     <string name="snackbar_remove_account">Konto %s fjernet</string>
     <string name="snackbar_undo_button">Fortryd</string>
-    <string name="gms_settings_name">MicroG Indstillinger</string>
+    <string name="gms_settings_name">Re-MicroG RE</string>
     <string name="gms_settings_summary">Konfigurér MicroG-tjenester.</string>
     <string name="just_a_sec">Et øjeblik…</string>
     <string name="ask_permission_tos">Ved at fortsætte, tillader du denne app og Google at bruge dine oplysninger i overensstemmelse med deres respektive betingelser og privatlivspolitik.</string>
