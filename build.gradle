@@ -5,7 +5,9 @@
 
 buildscript {
     ext.applicationNamespace = "com.google.android.gms"
-    ext.basePackageName = "app.revanced"
+    ext.basePackageName = "com.re.microre"
+    // Real application id of this build (used wherever the app refers to itself by package name)
+    ext.gmsPackageName = "com.re.microre"
 
     ext.cronetVersion = '102.5005.125'
     ext.wearableVersion = '0.1.1'

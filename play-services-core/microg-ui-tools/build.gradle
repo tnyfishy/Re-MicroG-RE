@@ -27,7 +27,7 @@ android {
         minSdkVersion androidMinSdk
         targetSdkVersion androidTargetSdk
 
-        buildConfigField "String", "APP_VERSION_NAME", "\"${rootProject.version}\""
+        buildConfigField "String", "APP_VERSION_NAME", "\"1.0\""
         def gvc = rootProject.ext.appVersionCode.toString()
         def baseVersion = gvc[0..1] + '.' + gvc[2..3] + '.' + gvc[4..5]
         buildConfigField "String", "GMS_VERSION_NAME", "\"GMS: ${baseVersion}\""

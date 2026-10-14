@@ -301,6 +301,15 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="pref_push_add_app_list_title">Installed apps</string>
     <string name="push_add_app_show_system_apps">Show system apps</string>
     <string name="push_add_app_hide_system_apps">Hide system apps</string>
+    <string name="push_add_app_add_selected">Add (%1$d)</string>
+    <string name="push_add_app_clear_selection">Clear selection</string>
+    <string name="push_add_app_added">Added %1$d app(s)</string>
+    <string name="keep_alive_title">Keep push notifications running</string>
+    <string name="keep_alive_item_battery">Turn off battery optimization</string>
+    <string name="keep_alive_item_autostart">Allow auto-start</string>
+    <string name="keep_alive_item_unused">Do not pause the app if unused</string>
+    <string name="keep_alive_done">Done</string>
+    <string name="keep_alive_later">Later</string>
     <string name="prefcat_gcm_registers">Registers</string>
     <string name="prefcat_advanced">Advanced</string>
     <string name="pref_gcm_remove_registers">Remove all registered apps</string>

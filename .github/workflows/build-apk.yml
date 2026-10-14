@@ -57,5 +57,5 @@ jobs:
           gh release create "debug-${{ github.run_number }}" "$APK" \
             --prerelease \
             --target "${{ github.sha }}" \
-            --title "Debug build ${{ github.run_number }}" \
+            --title "v1.0 - Debug build ${{ github.run_number }}" \
             --notes "Debug-signed APK built from ${{ github.sha }}."

@@ -117,6 +117,9 @@ dependencies {
     implementation "com.atlassian.commonmark:commonmark:0.12.1"
 }
 
+// Version shown to the user (the GMS version code stays untouched so apps keep seeing a valid Play Services version)
+def appVersionName = "1.0"
+
 android {
     namespace "$applicationNamespace"
 
@@ -130,7 +133,7 @@ android {
     }
 
     defaultConfig {
-        versionName version
+        versionName appVersionName
         versionCode appVersionCode
 
         minSdkVersion androidMinSdk
@@ -139,10 +142,11 @@ android {
         multiDexEnabled true
         multiDexKeepProguard file('multidex-keep.pro')
 
-        applicationId "${basePackageName}.android.gms"
+        applicationId "${gmsPackageName}"
 
         buildConfigField "String", "APPLICATION_NAMESPACE", "\"${android.namespace}\""
         buildConfigField "String", "BASE_PACKAGE_NAME", "\"$basePackageName\""
+        buildConfigField "String", "GMS_PACKAGE_NAME", "\"$gmsPackageName\""
 
         //noinspection GroovyConstructorNamedArguments
         manifestPlaceholders = [
@@ -163,9 +167,9 @@ android {
         resValue "string", "var_pref_auth_action_security_settings", "${basePackageName}.android.gms.accountsettings.SECURITY_SETTINGS"
         resValue "string", "var_pref_auth_action_privacy_settings", "${basePackageName}.android.gms.accountsettings.PRIVACY_SETTINGS"
         resValue "string", "var_pref_auth_action_preferences_settings", "${basePackageName}.android.gms.accountsettings.ACCOUNT_PREFERENCES_SETTINGS"
-        resValue "string", "var_pref_start_gms_package", "${basePackageName}.android.gms"
+        resValue "string", "var_pref_start_gms_package", "${gmsPackageName}"
 
-        resValue "string", "package_id", "${basePackageName}.android.gms"
+        resValue "string", "package_id", "${gmsPackageName}"
 
         buildConfigField "String", "SAFETYNET_KEY", "\"${localProperties.get("safetynet.key", "")}\""
         buildConfigField "String", "RECAPTCHA_SITE_KEY", "\"${localProperties.get("recaptcha.siteKey", "")}\""
@@ -269,6 +273,6 @@ if (file('user.gradle').exists()) {
 
 android.applicationVariants.all { variant ->
     variant.outputs.each { output ->
-        output.outputFileName = variant.applicationId + "-" + variant.versionCode + variant.versionName.substring(version.length()) + ".apk"
+        output.outputFileName = variant.applicationId + "-" + variant.versionCode + variant.versionName.substring(appVersionName.length()) + ".apk"
     }
 }

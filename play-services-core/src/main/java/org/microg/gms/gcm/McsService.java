@@ -232,6 +232,27 @@ public class McsService extends Service implements Handler.Callback {
         closeAll();
         database.close();
         super.onDestroy();
+        // If the system or the user killed the service while push is still enabled, come back at once
+        reconnectIfEnabled("service destroyed");
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        // Swiping the app away from Recents ("close all") must not drop the push connection
+        reconnectIfEnabled("task removed");
+    }
+
+    private void reconnectIfEnabled(String reason) {
+        try {
+            if (GcmPrefs.get(this).isEnabled()) {
+                logd(this, "Scheduling reconnect: " + reason);
+                resetCurrentDelay();
+                scheduleReconnect(this);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to schedule reconnect after " + reason, e);
+        }
     }
 
     @Override

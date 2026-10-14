@@ -3,6 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/menu_add_selected"
+        android:title="@string/push_add_app_add_selected"
+        android:visible="false"
+        app:showAsAction="always|withText" />
+
+    <item
+        android:id="@+id/menu_clear_selection"
+        android:title="@string/push_add_app_clear_selection"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_toggle_system_apps"
         android:title="@string/push_add_app_show_system_apps"
         app:showAsAction="ifRoom|withText" />

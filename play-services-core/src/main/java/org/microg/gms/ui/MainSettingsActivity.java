@@ -90,6 +90,19 @@ public class MainSettingsActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Checklist for keeping push notifications alive (battery, auto-start, unused-app pausing)
+        KeepAlive.showSetupDialogIfNeeded(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        KeepAlive.dismissSetupDialog();
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         // Tapping the update notification can deliver the check extra to an already-running activity.

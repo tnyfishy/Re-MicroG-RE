@@ -68,6 +68,7 @@ object AppUpdater {
     /** Intent extra used by the update notification to force the update prompt. */
     const val EXTRA_CHECK_UPDATE = "extra_check_update"
 
+    private const val UPSTREAM_UPDATES_DISABLED = true
     private const val RELEASES_URL = "https://api.github.com/repos/MorpheApp/MicroG-RE/releases"
     private const val UPDATE_URL = "$RELEASES_URL/latest"
     private const val PREFS_NAME = "org.microg.gms_updater"
@@ -782,6 +783,9 @@ object AppUpdater {
         includePrerelease: Boolean,
         strictVariantMatch: Boolean = false
     ): UpdateInfo? {
+        // This fork has its own package name and version scheme; the upstream release
+        // feed would offer unrelated builds as "updates", so update checks are disabled.
+        if (UPSTREAM_UPDATES_DISABLED) return null
         return try {
             if (includePrerelease || strictVariantMatch) {
                 val text = httpGet("$RELEASES_URL?per_page=20") ?: return null

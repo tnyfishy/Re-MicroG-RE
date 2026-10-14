@@ -8,8 +8,10 @@ package org.microg.gms.ui
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.text.format.DateUtils
+import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -86,13 +88,42 @@ class PushNotificationAppFragment : PreferenceFragmentCompat() {
     }
 
     private fun unregister() {
+        val pkg = packageName ?: return
+        val appContext = requireContext().applicationContext
         lifecycleScope.launchWhenResumed {
-            withContext(Dispatchers.IO) {
-                for (registration in database.getRegistrationsByApp(packageName)) {
-                    PushRegisterManager.unregister(context, registration.packageName, registration.signature, null, null)
+            val removed = withContext(Dispatchers.IO) {
+                val db = GcmDatabase(appContext)
+                try {
+                    for (registration in db.getRegistrationsByApp(pkg)) {
+                        try {
+                            PushRegisterManager.unregister(appContext, registration.packageName, registration.signature, null, null)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Server-side unregister failed for $pkg", e)
+                        }
+                    }
+                    // The server call fails when offline or rate limited and then leaves the
+                    // registration behind. The user asked to unregister, so never keep it locally.
+                    for (registration in db.getRegistrationsByApp(pkg)) {
+                        db.noteAppUnregistered(pkg, registration.signature)
+                    }
+                    // Apps added by hand have no registration, so there is nothing to unregister:
+                    // drop the entry instead. Denied apps stay listed to remember the denial.
+                    val app = db.getApp(pkg)
+                    if (app != null && app.allowRegister) {
+                        db.removeApp(pkg)
+                        true
+                    } else {
+                        false
+                    }
+                } finally {
+                    db.close()
                 }
             }
-            updateDetails()
+            if (removed) {
+                if (isAdded) findNavController().popBackStack()
+            } else {
+                updateDetails()
+            }
         }
     }
 
@@ -140,5 +171,9 @@ class PushNotificationAppFragment : PreferenceFragmentCompat() {
     override fun onPause() {
         super.onPause()
         database.close()
+    }
+
+    companion object {
+        private const val TAG = "GmsPushAppFragment"
     }
 }
