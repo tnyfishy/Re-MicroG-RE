@@ -7,6 +7,7 @@ package org.microg.gms.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -26,6 +27,10 @@ object KeepAlive {
     private const val TAG = "GmsKeepAlive"
     private const val PREFS = "keep_alive"
     private const val KEY_SETUP_DONE = "setup_done"
+    private const val KEY_AUTOSTART_OPENED = "autostart_opened"
+
+    // MIUI/HyperOS keeps the auto-start permission as a private app op
+    private const val OP_MIUI_AUTO_START = 10008
 
     // Auto-start manager screens of common vendor ROMs. None of them is a public API.
     private val AUTO_START_SCREENS = listOf(
@@ -59,6 +64,23 @@ object KeepAlive {
         }
     }
 
+    /**
+     * Whether the app may start by itself. Only Xiaomi systems report it (through a private app
+     * op); elsewhere the state cannot be read and this returns null.
+     */
+    fun isAutoStartAllowed(context: Context): Boolean? {
+        if (!Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) return null
+        return try {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val checkOp = AppOpsManager::class.java.getMethod("checkOpNoThrow",
+                    Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, String::class.java)
+            checkOp.invoke(appOps, OP_MIUI_AUTO_START, android.os.Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
+        } catch (e: Exception) {
+            Log.d(TAG, "Cannot read auto-start state: $e")
+            null
+        }
+    }
+
     @SuppressLint("BatteryLife")
     fun requestIgnoreBatteryOptimizations(activity: Activity) {
         val packageUri = Uri.parse("package:" + activity.packageName)
@@ -74,9 +96,21 @@ object KeepAlive {
         openAppDetails(activity)
     }
 
+    /** Opens the system "App permissions" page, which holds the "Manage app if unused" switch. */
     fun openUnusedAppSettings(activity: Activity) {
-        if (Build.VERSION.SDK_INT >= 30 &&
-                tryStart(activity, Intent(Intent.ACTION_AUTO_REVOKE_PERMISSIONS, Uri.parse("package:" + activity.packageName)))) return
+        if (Build.VERSION.SDK_INT >= 30) {
+            val intent = Intent(Intent.ACTION_AUTO_REVOKE_PERMISSIONS, Uri.parse("package:" + activity.packageName))
+            // Some ROMs route this intent to their own screen first; the permission controller is
+            // the one that shows the App permissions page, so ask for it directly
+            @Suppress("DEPRECATION")
+            val controller = activity.packageManager.queryIntentActivities(intent, 0)
+                    .firstOrNull { it.activityInfo.packageName.contains("permissioncontroller") }
+            if (controller != null &&
+                    tryStart(activity, Intent(intent).setClassName(controller.activityInfo.packageName, controller.activityInfo.name))) return
+            if (tryStart(activity, Intent("android.intent.action.MANAGE_APP_PERMISSIONS")
+                            .putExtra("android.intent.extra.PACKAGE_NAME", activity.packageName))) return
+            if (tryStart(activity, intent)) return
+        }
         openAppDetails(activity)
     }
 
@@ -105,7 +139,8 @@ object KeepAlive {
         fun label(done: Boolean, text: Int) = (if (done) "✓  " else "○  ") + activity.getString(text)
         val items = arrayOf(
                 label(isIgnoringBatteryOptimizations(activity), R.string.keep_alive_item_battery),
-                label(false, R.string.keep_alive_item_autostart),
+                // Without a readable state, count it as done once the user opened its screen
+                label(isAutoStartAllowed(activity) ?: prefs.getBoolean(KEY_AUTOSTART_OPENED, false), R.string.keep_alive_item_autostart),
                 label(isUnusedAppRestrictionDisabled(activity), R.string.keep_alive_item_unused)
         )
         val dialog = activity.buildAlertDialog()
@@ -113,7 +148,10 @@ object KeepAlive {
                 .setItems(items) { _, which ->
                     when (which) {
                         0 -> requestIgnoreBatteryOptimizations(activity)
-                        1 -> openAutoStartSettings(activity)
+                        1 -> {
+                            prefs.edit().putBoolean(KEY_AUTOSTART_OPENED, true).apply()
+                            openAutoStartSettings(activity)
+                        }
                         2 -> openUnusedAppSettings(activity)
                     }
                 }
