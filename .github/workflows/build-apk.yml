@@ -1,0 +1,39 @@
+name: Build APK
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "claude/**"
+
+jobs:
+  apk:
+    name: "Debug APK"
+    runs-on: ubuntu-latest
+    env:
+      GRADLE_MICROG_VERSION_WITHOUT_GIT: 1
+    steps:
+      - name: "Checkout sources"
+        uses: actions/checkout@v4
+
+      - name: "Setup Java"
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: "Setup Gradle"
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: "Build debug APK"
+        run: "./gradlew --no-daemon :play-services-core:assembleDefaultDebug"
+
+      - name: "Upload APK"
+        uses: actions/upload-artifact@v4
+        with:
+          name: microg-debug-apk
+          path: "play-services-core/build/outputs/apk/default/debug/*.apk"
+          if-no-files-found: error
