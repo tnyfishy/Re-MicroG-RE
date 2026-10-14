@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ SPDX-FileCopyrightText: 2017 microG Project Team
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Self check -->
+    <!-- Settings strings -->
+    <string name="prefcat_about">Quant a</string>
+    <string name="update_failed_title">Actualització fallida</string>
+    <!-- Passkey management -->
+    <!-- ABI mismatch: arm64 APK on 32-bit userspace -->
+</resources>
