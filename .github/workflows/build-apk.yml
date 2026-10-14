@@ -31,9 +31,19 @@ jobs:
       - name: "Build debug APK"
         run: "./gradlew --no-daemon :play-services-core:assembleDefaultDebug"
 
+      - name: "List built APKs"
+        run: |
+          find play-services-core/build/outputs -name '*.apk' -exec ls -l {} \;
+
       - name: "Upload APK"
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: microg-debug-apk
-          path: "play-services-core/build/outputs/apk/default/debug/*.apk"
+          path: "play-services-core/build/outputs/apk/**/*.apk"
           if-no-files-found: error
+
+      - name: "Show artifact result"
+        run: |
+          echo "artifact-id=${{ steps.upload.outputs.artifact-id }}"
+          echo "artifact-url=${{ steps.upload.outputs.artifact-url }}"
