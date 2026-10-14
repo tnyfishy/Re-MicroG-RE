@@ -1,7 +1,7 @@
 name: Build APK
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   workflow_dispatch:
@@ -47,3 +47,15 @@ jobs:
         run: |
           echo "artifact-id=${{ steps.upload.outputs.artifact-id }}"
           echo "artifact-url=${{ steps.upload.outputs.artifact-url }}"
+
+      - name: "Publish APK as a release (manual runs only)"
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(find play-services-core/build/outputs/apk -name '*.apk' | head -n 1)
+          gh release create "debug-${{ github.run_number }}" "$APK" \
+            --prerelease \
+            --target "${{ github.sha }}" \
+            --title "Debug build ${{ github.run_number }}" \
+            --notes "Debug-signed APK built from ${{ github.sha }}."
