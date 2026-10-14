@@ -1,5 +1,5 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The artwork is one bitmap (starfield + hexagon), sized so the hexagon fits the safe zone -->
-    <background android:drawable="@mipmap/ic_launcher_background" />
-    <foreground android:drawable="@android:color/transparent" />
+    <background android:drawable="@drawable/ic_launcher_re_background" />
+    <foreground android:drawable="@drawable/ic_launcher_re_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_re_monochrome" />
 </adaptive-icon>
