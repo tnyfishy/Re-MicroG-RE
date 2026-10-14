@@ -80,6 +80,10 @@
     <string name="gcm_allow_app_popup">Cho phép <xliff:g example="F-Droid">%1$s</xliff:g> đăng ký nhận thông báo đẩy?</string>
     <string name="pref_push_app_allow_register_title">Cho phép đăng ký</string>
     <string name="prefcat_push_apps_title">Ứng dụng sử dụng thông báo đẩy</string>
+    <string name="pref_push_apps_add_title">Thêm ứng dụng</string>
+    <string name="pref_push_add_app_list_title">Ứng dụng đã cài đặt</string>
+    <string name="push_add_app_show_system_apps">Hiện ứng dụng hệ thống</string>
+    <string name="push_add_app_hide_system_apps">Ẩn ứng dụng hệ thống</string>
     <string name="pref_test_summary_running">Đang chạy…</string>
     <string name="pref_safetynet_recent_attestation_summary">Chứng thực: %s</string>
     <string name="pref_safetynet_recent_recaptcha_summary">ReCaptcha: %s</string>

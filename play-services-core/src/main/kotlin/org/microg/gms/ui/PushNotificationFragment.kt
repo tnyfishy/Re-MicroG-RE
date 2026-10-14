@@ -36,6 +36,7 @@ class PushNotificationFragment : PreferenceFragmentCompat() {
     private lateinit var pushApps: PreferenceCategory
     private lateinit var pushAppsAll: Preference
     private lateinit var pushAppsNone: Preference
+    private lateinit var pushAppsAdd: Preference
     private lateinit var database: GcmDatabase
     private val handler = Handler()
     private val updateRunnable = Runnable { updateStatus() }
@@ -68,6 +69,11 @@ class PushNotificationFragment : PreferenceFragmentCompat() {
         pushAppsNone = preferenceScreen.findPreference("pref_push_apps_none") ?: pushAppsNone
         pushAppsAll.setOnPreferenceClickListener {
             findNavController().navigate(requireContext(), R.id.openAllGcmApps)
+            true
+        }
+        pushAppsAdd = preferenceScreen.findPreference("pref_push_apps_add") ?: pushAppsAdd
+        pushAppsAdd.setOnPreferenceClickListener {
+            findNavController().navigate(requireContext(), R.id.openGcmAddApp)
             true
         }
         switchBarPreference.setOnPreferenceChangeListener { _, newValue ->
@@ -136,10 +142,11 @@ class PushNotificationFragment : PreferenceFragmentCompat() {
 
             pushApps.removeAll()
 
+            // The "Add app" button always sits last, so it takes one more slot
             val totalDisplayed = when {
-                apps.isEmpty() -> 1
-                showAll -> apps.size + 1
-                else -> apps.size
+                apps.isEmpty() -> 2
+                showAll -> apps.size + 2
+                else -> apps.size + 1
             }
 
             apps.forEachIndexed { index, pref ->
@@ -158,6 +165,10 @@ class PushNotificationFragment : PreferenceFragmentCompat() {
                 pushApps.addPreference(pushAppsAll)
             }
             pushAppsAll.isVisible = showAll
+
+            pushAppsAdd.layoutResource = chooseLayoutForPosition(totalDisplayed - 1, totalDisplayed)
+            pushAppsAdd.isIconSpaceReserved = false
+            pushApps.addPreference(pushAppsAdd)
         }
     }
 

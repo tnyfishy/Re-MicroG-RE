@@ -102,6 +102,9 @@
             android:id="@+id/openAllGcmApps"
             app:destination="@id/gcmAllAppsFragment" />
         <action
+            android:id="@+id/openGcmAddApp"
+            app:destination="@id/gcmAddAppFragment" />
+        <action
             android:id="@+id/openGcmAdvancedSettings"
             app:destination="@id/gcmAdvancedFragment" />
         <deepLink
@@ -117,6 +120,11 @@
             android:id="@+id/openGcmAppDetailsFromAll"
             app:destination="@id/gcmAppFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/gcmAddAppFragment"
+        android:name="org.microg.gms.ui.PushNotificationAddAppFragment"
+        android:label="@string/pref_push_apps_add_title" />
 
     <fragment
         android:id="@+id/gcmAppFragment"

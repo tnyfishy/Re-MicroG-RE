@@ -18,6 +18,7 @@
             android:enabled="false"
             android:key="pref_push_apps_none"
             android:layout="@layout/preference_material_top"
+            android:order="0"
             android:title="@string/list_no_item_none"
             app:iconSpaceReserved="false" />
 
@@ -27,6 +28,13 @@
             android:layout="@layout/preference_material_bottom"
             android:order="5"
             android:title="@string/list_item_see_all" />
+
+        <Preference
+            android:icon="@drawable/ic_add"
+            android:key="pref_push_apps_add"
+            android:layout="@layout/preference_material_bottom"
+            android:order="10"
+            android:title="@string/pref_push_apps_add_title" />
     </PreferenceCategory>
 
     <PreferenceCategory
