@@ -98,6 +98,8 @@
     <string name="keep_alive_item_battery">Tắt tối ưu hóa pin</string>
     <string name="keep_alive_item_autostart">Cho phép tự khởi chạy</string>
     <string name="keep_alive_item_unused">Tắt “Quản lý ứng dụng nếu không dùng” (Quyền ứng dụng)</string>
+    <string name="pref_gcm_ping_category">Kết nối</string>
+    <string name="pref_gcm_ping_title">Ping interval</string>
     <string name="gcm_ping_custom_entry">Ping interval tùy chọn…</string>
     <string name="gcm_ping_custom_title">Ping interval tùy chọn</string>
     <string name="gcm_ping_custom_message">Khoảng thời gian tính bằng giây (tối thiểu 1). Khoảng càng ngắn càng sớm phát hiện mất kết nối nhưng tốn pin và dữ liệu hơn, và Android vẫn có thể hoãn ping khi máy đang nghỉ.</string>

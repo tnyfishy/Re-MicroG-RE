@@ -1,76 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <PreferenceCategory
-        android:layout="@layout/preference_material_category_small"
-        app:allowDividerAbove="false"
-        app:title="@string/prefcat_gcm_registers">
-
-        <SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="gcm_confirm_new_apps"
-            android:layout="@layout/preference_material_single"
-            android:persistent="false"
-            android:summary="@string/pref_gcm_confirm_new_apps_summary"
-            android:title="@string/pref_gcm_confirm_new_apps_title"
-            app:iconSpaceReserved="false" />
-    </PreferenceCategory>
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
         android:key="prefcat_networks"
         android:layout="@layout/preference_material_category"
-        android:title="@string/prefcat_push_networks_title"
+        android:title="@string/pref_gcm_ping_category"
         app:allowDividerAbove="false">
 
-        <ListPreference
-            android:defaultValue="0"
-            android:persistent="false"
-            android:entries="@array/gcm_network_config_names"
-            android:entryValues="@array/gcm_network_config_values"
+        <!-- One interval for every network: Wi-Fi, mobile data, roaming and others -->
+        <Preference
             android:icon="@drawable/ic_network_wifi"
-            android:key="gcm_network_wifi"
-            android:layout="@layout/preference_material_top"
-            android:title="@string/network_type_wifi"
-            tools:summary="ON / Manual: 30 min"
-            app:dialogIcon="@drawable/ic_network_wifi" />
-
-        <ListPreference
-            android:defaultValue="0"
+            android:key="pref_gcm_ping_interval"
+            android:layout="@layout/preference_material_single"
             android:persistent="false"
-            android:entries="@array/gcm_network_config_names"
-            android:entryValues="@array/gcm_network_config_values"
-            android:icon="@drawable/ic_network_mobile_data"
-            android:key="gcm_network_mobile"
-            android:layout="@layout/preference_material_middle"
-            android:title="@string/network_type_mobile"
-            tools:summary="ON / Automatic: 13 min"
-            app:dialogIcon="@drawable/ic_network_mobile_data" />
-
-        <ListPreference
-            android:defaultValue="0"
-            android:persistent="false"
-            android:entries="@array/gcm_network_config_names"
-            android:entryValues="@array/gcm_network_config_values"
-            android:icon="@drawable/ic_network_roaming"
-            android:key="gcm_network_roaming"
-            android:layout="@layout/preference_material_middle"
-            android:title="@string/network_type_roaming"
-            tools:summary="OFF"
-            app:dialogIcon="@drawable/ic_network_roaming" />
-
-        <ListPreference
-            android:defaultValue="0"
-            android:persistent="false"
-            android:entries="@array/gcm_network_config_names"
-            android:entryValues="@array/gcm_network_config_values"
-            android:icon="@drawable/ic_network_others"
-            android:key="gcm_network_other"
-            android:layout="@layout/preference_material_bottom"
-            android:title="@string/network_type_other"
-            tools:summary="ON / Automatic: 30 min"
-            app:dialogIcon="@drawable/ic_network_others" />
+            android:title="@string/pref_gcm_ping_title" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown for a moment when the app starts: app logo plus a Material 3 loading indicator in a round container -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/launch_overlay"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:clickable="true"
+    android:elevation="12dp"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/launch_logo"
+            android:layout_width="108dp"
+            android:layout_height="108dp"
+            android:contentDescription="@null"
+            android:src="@mipmap/ic_launcher" />
+
+        <FrameLayout
+            android:id="@+id/launch_container"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/loading_indicator_container">
+
+            <com.google.android.material.loadingindicator.LoadingIndicator
+                style="@style/Widget.Material3.LoadingIndicator"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_gravity="center" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

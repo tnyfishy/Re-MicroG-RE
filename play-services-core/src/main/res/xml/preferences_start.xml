@@ -70,12 +70,6 @@
             android:targetClass="org.microg.gms.ui.SelfCheckFragment$AsActivity"
             android:targetPackage="@string/package_id" />
     </Preference>
-    <Preference
-        android:icon="@drawable/ic_github"
-        android:key="pref_github"
-        android:layout="@layout/preference_material_middle"
-        android:summary="@string/pref_github_summary"
-        android:title="@string/pref_github" />
     <ListPreference
         android:defaultValue=""
         android:icon="@drawable/ic_language"

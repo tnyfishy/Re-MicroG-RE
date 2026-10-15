@@ -4,7 +4,7 @@
   ~ SPDX-License-Identifier: Apache-2.0
   -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="gms_app_name" translatable="false">MicroG RE</string>
+    <string name="gms_app_name" translatable="false">Re-MRE</string>
     <string name="dialog_title_remove_account">Remove account</string>
     <string name="dialog_message_remove_account">"Are you sure you want to remove this account?
 
@@ -315,6 +315,8 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="keep_alive_item_battery">Turn off battery optimization</string>
     <string name="keep_alive_item_autostart">Allow auto-start</string>
     <string name="keep_alive_item_unused">Turn off “Manage app if unused” (App permissions)</string>
+    <string name="pref_gcm_ping_category">Connection</string>
+    <string name="pref_gcm_ping_title">Ping interval</string>
     <string name="gcm_ping_custom_entry">Custom ping interval…</string>
     <string name="gcm_ping_custom_title">Custom ping interval</string>
     <string name="gcm_ping_custom_message">Interval in seconds (at least 1). Short intervals notice dropped connections sooner but use more battery and data, and Android may still delay pings while the phone is idle.</string>

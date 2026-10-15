@@ -60,7 +60,8 @@ data class GcmPrefs(
                 GcmPrefs(
                     isGcmLogEnabled = c.getInt(0) != 0,
                     lastPersistedId = c.getString(1),
-                    confirmNewApps = c.getInt(2) != 0,
+                    // The "confirm new apps" option is gone: apps are always allowed to register
+                    confirmNewApps = false,
                     gcmEnabled = c.getInt(3) != 0,
                     networkMobile = c.getInt(4),
                     networkWifi = c.getInt(5),
