@@ -190,6 +190,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission
         android:name="android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST"
         tools:ignore="ProtectedPermissions" />
@@ -393,7 +394,12 @@
 
         <service
             android:name="org.microg.gms.gcm.McsService"
-            android:process=":persistent" />
+            android:foregroundServiceType="specialUse"
+            android:process=":persistent">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the push notification (Cloud Messaging) connection open" />
+        </service>
 
         <service
             android:name="org.microg.gms.gcm.GcmInGmsService"

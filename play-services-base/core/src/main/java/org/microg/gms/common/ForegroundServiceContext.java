@@ -29,9 +29,20 @@ public class ForegroundServiceContext extends ContextWrapper {
         super(base);
     }
 
+    // The push connection service. Xiaomi (MIUI/HyperOS) freezes background apps even when they are
+    // exempt from battery optimization, so this one stays in the foreground there.
+    private static final String PUSH_SERVICE = "org.microg.gms.gcm.McsService";
+
+    private boolean shouldRunInForeground(Intent service) {
+        if (SDK_INT < 26) return false;
+        if (!isIgnoringBatteryOptimizations()) return true;
+        ComponentName component = service.getComponent();
+        return ForegroundServiceOemUtils.isXiaomi() && component != null && PUSH_SERVICE.equals(component.getClassName());
+    }
+
     @Override
     public ComponentName startService(Intent service) {
-        if (SDK_INT >= 26 && !isIgnoringBatteryOptimizations()) {
+        if (shouldRunInForeground(service)) {
             Log.d(TAG, "Starting in foreground mode.");
             service.putExtra(EXTRA_FOREGROUND, true);
             return super.startForegroundService(service);
@@ -78,12 +89,32 @@ public class ForegroundServiceContext extends ContextWrapper {
             Log.d(tag, "Started " + serviceName + " in foreground mode.");
             try {
                 Notification notification = buildForegroundNotification(service, serviceName);
-                service.startForeground(serviceName.hashCode(), notification);
+                startForegroundCompat(service, serviceName.hashCode(), notification);
                 Log.d(tag, "Notification: " + notification.toString());
             } catch (Exception e) {
                 Log.w(tag, e);
             }
         }
+    }
+
+    /**
+     * Android 14+ rejects startForeground() without a type. Use the type declared for the service in
+     * the manifest, if there is one.
+     */
+    private static void startForegroundCompat(Service service, int id, Notification notification) {
+        if (SDK_INT >= 29) {
+            try {
+                int type = service.getPackageManager()
+                        .getServiceInfo(new ComponentName(service, service.getClass()), 0).getForegroundServiceType();
+                if (type != 0) {
+                    service.startForeground(id, notification, type);
+                    return;
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Cannot start with the declared foreground service type", e);
+            }
+        }
+        service.startForeground(id, notification);
     }
 
     @RequiresApi(26)
@@ -140,6 +171,7 @@ public class ForegroundServiceContext extends ContextWrapper {
 
         return new Notification.Builder(context, channel.getId())
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
                 .setSmallIcon(R.drawable.ic_background_notify)
                 .setContentTitle(notifyTitle)
                 .setContentText(firstLine)
