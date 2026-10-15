@@ -61,8 +61,6 @@ public class MainSettingsActivity extends AppCompatActivity {
 
         HighRefreshRate.request(this);
         setContentView(R.layout.settings_root_activity);
-        // Logo and loading animation on a cold start only, not after a rotation or theme change
-        if (savedInstanceState == null) LaunchOverlay.show(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         CollapsingToolbarLayout toolbarLayout = findViewById(R.id.collapsing_toolbar);
