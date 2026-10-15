@@ -6,6 +6,9 @@ package org.microg.gms.ui
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.text.InputType
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -50,51 +53,58 @@ class PushNotificationAdvancedFragment : PreferenceFragmentCompat() {
             }
             true
         }
-        networkMobile.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            val appContext = requireContext().applicationContext
-            lifecycleScope.launchWhenResumed {
-                (newValue as? String)?.toIntOrNull()?.let {
-                    setGcmServiceConfiguration(appContext, getGcmServiceInfo(appContext).configuration.copy(mobile = it))
-                }
-                updateContent()
-            }
-            true
-        }
-        networkWifi.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            val appContext = requireContext().applicationContext
-            lifecycleScope.launchWhenResumed {
-                (newValue as? String)?.toIntOrNull()?.let {
-                    setGcmServiceConfiguration(appContext, getGcmServiceInfo(appContext).configuration.copy(wifi = it))
-                }
-                updateContent()
-            }
-            true
-        }
-        networkRoaming.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            val appContext = requireContext().applicationContext
-            lifecycleScope.launchWhenResumed {
-                (newValue as? String)?.toIntOrNull()?.let {
-                    setGcmServiceConfiguration(appContext, getGcmServiceInfo(appContext).configuration.copy(roaming = it))
-                }
-                updateContent()
-            }
-            true
-        }
-        networkOther.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            val appContext = requireContext().applicationContext
-            lifecycleScope.launchWhenResumed {
-                (newValue as? String)?.toIntOrNull()?.let {
-                    setGcmServiceConfiguration(appContext, getGcmServiceInfo(appContext).configuration.copy(other = it))
-                }
-                updateContent()
-            }
-            true
-        }
+        networkMobile.onPreferenceChangeListener = intervalListener { config, value -> config.copy(mobile = value) }
+        networkWifi.onPreferenceChangeListener = intervalListener { config, value -> config.copy(wifi = value) }
+        networkRoaming.onPreferenceChangeListener = intervalListener { config, value -> config.copy(roaming = value) }
+        networkOther.onPreferenceChangeListener = intervalListener { config, value -> config.copy(other = value) }
         findPreference<Preference>("pref_remove_all_registers")
             ?.setOnPreferenceClickListener {
                 showRemoveRegistersDialog()
                 true
             }
+    }
+
+    /** Stores the chosen interval; "custom" first asks for a number of seconds. */
+    private fun intervalListener(update: (ServiceConfiguration, Int) -> ServiceConfiguration) =
+            Preference.OnPreferenceChangeListener { _, newValue ->
+                if (newValue == CUSTOM_VALUE) {
+                    askCustomSeconds { seconds -> saveInterval(GcmPrefs.CUSTOM_SECONDS_BASE + seconds, update) }
+                    false
+                } else {
+                    (newValue as? String)?.toIntOrNull()?.let { saveInterval(it, update) }
+                    true
+                }
+            }
+
+    private fun saveInterval(value: Int, update: (ServiceConfiguration, Int) -> ServiceConfiguration) {
+        val appContext = requireContext().applicationContext
+        lifecycleScope.launchWhenResumed {
+            setGcmServiceConfiguration(appContext, update(getGcmServiceInfo(appContext).configuration, value))
+            updateContent()
+        }
+    }
+
+    private fun askCustomSeconds(onDone: (Int) -> Unit) {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = getString(R.string.gcm_ping_custom_hint)
+        }
+        val container = FrameLayout(requireContext()).apply {
+            val padding = (24 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+        requireContext().buildAlertDialog()
+                .setTitle(R.string.gcm_ping_custom_title)
+                .setMessage(R.string.gcm_ping_custom_message)
+                .setView(container)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val seconds = input.text.toString().trim().toIntOrNull()
+                    if (seconds != null && seconds >= 1) onDone(seconds)
+                    else Toast.makeText(requireContext(), R.string.gcm_ping_custom_invalid, Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
     }
 
     override fun onResume() {
@@ -163,7 +173,7 @@ class PushNotificationAdvancedFragment : PreferenceFragmentCompat() {
     private fun getSummaryString(value: Int, learnt: Int): String = when (value) {
         -1 -> getString(R.string.push_notifications_summary_off)
         0 -> getString(R.string.push_notifications_summary_automatic, getHeartbeatString(learnt))
-        else -> getString(R.string.push_notifications_summary_manual, getHeartbeatString(value * 60000))
+        else -> getString(R.string.push_notifications_summary_manual, getHeartbeatString(GcmPrefs.intervalMs(value)))
     }
 
     private fun getHeartbeatString(heartbeatMs: Int): String {
@@ -173,6 +183,7 @@ class PushNotificationAdvancedFragment : PreferenceFragmentCompat() {
     }
 
     companion object {
+        private const val CUSTOM_VALUE = "custom"
         private val HEARTBEAT_PREFS = arrayOf(GcmPrefs.PREF_NETWORK_MOBILE, GcmPrefs.PREF_NETWORK_ROAMING, GcmPrefs.PREF_NETWORK_WIFI, GcmPrefs.PREF_NETWORK_OTHER)
     }
 }

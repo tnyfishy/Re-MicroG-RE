@@ -40,6 +40,7 @@
         <item>15</item>
         <item>20</item>
         <item>30</item>
+        <item>custom</item>
     </string-array>
 
     <string-array name="gcm_network_config_names" translatables="false">
@@ -54,6 +55,7 @@
         <item>Ping interval: 15 minutes</item>
         <item>Ping interval: 20 minutes</item>
         <item>Ping interval: 30 minutes</item>
+        <item>@string/gcm_ping_custom_entry</item>
     </string-array>
 
     <!-- Locale tags of every language the app is translated into (must mirror locales_config.xml). -->

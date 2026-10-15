@@ -315,6 +315,11 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="keep_alive_item_battery">Turn off battery optimization</string>
     <string name="keep_alive_item_autostart">Allow auto-start</string>
     <string name="keep_alive_item_unused">Turn off “Manage app if unused” (App permissions)</string>
+    <string name="gcm_ping_custom_entry">Custom ping interval…</string>
+    <string name="gcm_ping_custom_title">Custom ping interval</string>
+    <string name="gcm_ping_custom_message">Interval in seconds (at least 1). Short intervals notice dropped connections sooner but use more battery and data, and Android may still delay pings while the phone is idle.</string>
+    <string name="gcm_ping_custom_hint">Seconds</string>
+    <string name="gcm_ping_custom_invalid">Enter a whole number of seconds, at least 1</string>
     <string name="keep_alive_done">Done</string>
     <string name="keep_alive_later">Later</string>
     <string name="prefcat_gcm_registers">Registers</string>

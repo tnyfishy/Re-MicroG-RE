@@ -40,6 +40,17 @@ data class GcmPrefs(
 
         // Carriers and routers often drop idle connections after a few minutes without telling
         // either side; messages then wait until the next heartbeat notices. Keep it short.
+        /**
+         * Network interval settings are minutes, -1 (off) or 0 (automatic). A custom interval in
+         * seconds is stored as CUSTOM_SECONDS_BASE + seconds, far above any minute value.
+         */
+        const val CUSTOM_SECONDS_BASE = 1_000_000
+
+        /** Heartbeat interval in milliseconds for a stored network interval setting. */
+        @JvmStatic
+        fun intervalMs(value: Int): Int =
+                if (value >= CUSTOM_SECONDS_BASE) (value - CUSTOM_SECONDS_BASE).coerceAtLeast(1) * 1000 else value * 60000
+
         private const val MIN_INTERVAL = 2 * 60 * 1000 // 2 minutes
         private const val MAX_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
@@ -121,13 +132,13 @@ data class GcmPrefs(
 
     fun getHeartbeatMsFor(pref: String): Int {
         return if (PREF_NETWORK_ROAMING == pref) {
-            if (networkRoaming != 0) networkRoaming * 60000 else learnt(learntMobileInterval)
+            if (networkRoaming != 0) intervalMs(networkRoaming) else learnt(learntMobileInterval)
         } else if (PREF_NETWORK_MOBILE == pref) {
-            if (networkMobile != 0) networkMobile * 60000 else learnt(learntMobileInterval)
+            if (networkMobile != 0) intervalMs(networkMobile) else learnt(learntMobileInterval)
         } else if (PREF_NETWORK_WIFI == pref) {
-            if (networkWifi != 0) networkWifi * 60000 else learnt(learntWifiInterval)
+            if (networkWifi != 0) intervalMs(networkWifi) else learnt(learntWifiInterval)
         } else {
-            if (networkOther != 0) networkOther * 60000 else learnt(learntOtherInterval)
+            if (networkOther != 0) intervalMs(networkOther) else learnt(learntOtherInterval)
         }
     }
 
