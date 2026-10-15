@@ -38,6 +38,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.microg.gms.gcm.GcmDatabase
+import java.text.Normalizer
+import androidx.core.widget.doAfterTextChanged
+import androidx.activity.OnBackPressedCallback
+import android.widget.EditText
+import android.view.inputmethod.InputMethodManager
+import android.view.animation.OvershootInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.MotionEvent
+import android.content.Context
+import android.animation.ValueAnimator
 
 /**
  * Lets the user pick installed apps and allow them to register for push notifications
@@ -50,6 +60,8 @@ class PushNotificationAddAppFragment : Fragment() {
     // load them on the main thread (that made the list stutter on high refresh rate screens).
     private class AppEntry(val info: ApplicationInfo, val label: String, val icon: Drawable) {
         val packageName: String get() = info.packageName
+        // Lowercase, without accents, so "chinh sua" finds "Chỉnh sửa"
+        val searchKey: String = fold(label) + " " + info.packageName.lowercase()
     }
 
     private class AppHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -60,7 +72,16 @@ class PushNotificationAddAppFragment : Fragment() {
     }
 
     private val adapter = AppAdapter()
+    private var allApps: List<AppEntry> = emptyList()
     private var apps: List<AppEntry> = emptyList()
+    private var query = ""
+    private var searchExpanded = false
+    private var searchBar: View? = null
+    private var searchInput: EditText? = null
+    private var searchTap: View? = null
+    private var searchClear: View? = null
+    private var searchAnimator: ValueAnimator? = null
+    private var backCallback: OnBackPressedCallback? = null
     private val selected = LinkedHashSet<String>()
     private var selectedColor = Color.LTGRAY
     private var swipeRefresh: SwipeRefreshLayout? = null
@@ -74,6 +95,7 @@ class PushNotificationAddAppFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         savedInstanceState?.getStringArrayList(STATE_SELECTED)?.let { selected.addAll(it) }
+        query = savedInstanceState?.getString(STATE_QUERY) ?: ""
         setHasOptionsMenu(true)
     }
 
@@ -110,6 +132,8 @@ class PushNotificationAddAppFragment : Fragment() {
         swipe.viewTreeObserver.addOnPreDrawListener(listener)
         preDrawListener = listener
 
+        setupSearch(view)
+
         if (needsAppListPermission()) requestAppListPermission.launch(APP_LIST_PERMISSION) else loadApps()
     }
 
@@ -119,6 +143,13 @@ class PushNotificationAddAppFragment : Fragment() {
             if (observer != null && observer.isAlive) observer.removeOnPreDrawListener(listener)
         }
         preDrawListener = null
+        searchAnimator?.cancel()
+        backCallback?.remove()
+        backCallback = null
+        searchBar = null
+        searchInput = null
+        searchTap = null
+        searchClear = null
         pullCircle = null
         swipeRefresh = null
         loadingIndicator = null
@@ -163,7 +194,7 @@ class PushNotificationAddAppFragment : Fragment() {
         container.alpha = reveal
         container.scaleX = 0.6f + 0.4f * reveal
         container.scaleY = 0.6f + 0.4f * reveal
-        container.translationY = circle.top + (circle.height - container.layoutParams.height) / 2f
+        container.translationY = (swipeRefresh?.top ?: 0) + circle.top + (circle.height - container.layoutParams.height) / 2f
     }
 
     private fun loadApps() {
@@ -179,16 +210,130 @@ class PushNotificationAddAppFragment : Fragment() {
                         .map { AppEntry(it, pm.getApplicationLabel(it).toString(), it.loadIcon(pm)) }
                         .sortedBy { it.label.lowercase() }
             }
-            apps = loaded
+            allApps = loaded
             // Never keep a selection of an app that is gone
             selected.retainAll(loaded.mapTo(HashSet()) { it.packageName })
-            adapter.notifyDataSetChanged()
+            applyFilter()
             activity?.invalidateOptionsMenu()
             // A load that finishes at once would only flash the indicator, so keep it a moment
             val remaining = MIN_LOADING_MS - (SystemClock.elapsedRealtime() - startedAt)
             if (remaining > 0) delay(remaining)
             setLoading(false)
         }
+    }
+
+    private fun applyFilter() {
+        val needle = fold(query.trim())
+        apps = if (needle.isEmpty()) allApps else allApps.filter { it.searchKey.contains(needle) }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun setupSearch(view: View) {
+        val bar = view.findViewById<View>(R.id.push_add_app_search_bar)
+        val input = view.findViewById<EditText>(R.id.push_add_app_search_input)
+        val tap = view.findViewById<View>(R.id.push_add_app_search_tap)
+        val clear = view.findViewById<View>(R.id.push_add_app_search_clear)
+        searchBar = bar
+        searchInput = input
+        searchTap = tap
+        searchClear = clear
+
+        input.doAfterTextChanged {
+            query = it?.toString() ?: ""
+            applyFilter()
+        }
+        input.setOnEditorActionListener { _, _, _ ->
+            hideKeyboard()
+            true
+        }
+
+        // Pressing the bar squishes it in...
+        tap.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> bar.animate().scaleX(0.94f).scaleY(0.88f).setDuration(90)
+                        .setInterpolator(DecelerateInterpolator()).start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val inside = event.x >= 0 && event.x <= v.width && event.y >= 0 && event.y <= v.height
+                    if (event.actionMasked == MotionEvent.ACTION_CANCEL || !inside) {
+                        bar.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
+                    }
+                }
+            }
+            false
+        }
+        // ...and releasing it makes it spring open
+        tap.setOnClickListener { setSearchExpanded(true, animate = true) }
+        clear.setOnClickListener {
+            if (query.isNotEmpty()) input.setText("") else setSearchExpanded(false, animate = true)
+        }
+
+        val callback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                input.setText("")
+                setSearchExpanded(false, animate = true)
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, callback)
+        backCallback = callback
+
+        if (query.isNotEmpty()) {
+            input.setText(query)
+            setSearchExpanded(true, animate = false)
+        }
+    }
+
+    private fun setSearchExpanded(expanded: Boolean, animate: Boolean) {
+        val bar = searchBar ?: return
+        val input = searchInput ?: return
+        searchExpanded = expanded
+        backCallback?.isEnabled = expanded
+        searchTap?.visibility = if (expanded) View.GONE else View.VISIBLE
+        searchClear?.visibility = if (expanded) View.VISIBLE else View.GONE
+        input.isFocusable = expanded
+        input.isFocusableInTouchMode = expanded
+
+        val params = bar.layoutParams as ViewGroup.MarginLayoutParams
+        val target = ((if (expanded) 12 else 24) * bar.resources.displayMetrics.density).toInt()
+        searchAnimator?.cancel()
+        if (animate) {
+            searchAnimator = ValueAnimator.ofInt(params.marginStart, target).apply {
+                duration = if (expanded) 450L else 250L
+                // Overshoot: the bar opens a little too wide, then settles
+                interpolator = if (expanded) OvershootInterpolator(2.4f) else DecelerateInterpolator()
+                addUpdateListener {
+                    val margin = it.animatedValue as Int
+                    params.marginStart = margin
+                    params.marginEnd = margin
+                    bar.layoutParams = params
+                }
+                start()
+            }
+            bar.animate().scaleX(1f).scaleY(1f).setDuration(if (expanded) 420L else 200L)
+                    .setInterpolator(OvershootInterpolator(2.2f)).start()
+        } else {
+            params.marginStart = target
+            params.marginEnd = target
+            bar.layoutParams = params
+            bar.scaleX = 1f
+            bar.scaleY = 1f
+        }
+
+        if (expanded) {
+            input.requestFocus()
+            input.post {
+                (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                        .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+            }
+        } else {
+            input.clearFocus()
+            hideKeyboard()
+        }
+    }
+
+    private fun hideKeyboard() {
+        val input = searchInput ?: return
+        (requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                .hideSoftInputFromWindow(input.windowToken, 0)
     }
 
     private fun toggleSelection(position: Int) {
@@ -254,6 +399,7 @@ class PushNotificationAddAppFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putStringArrayList(STATE_SELECTED, ArrayList(selected))
+        outState.putString(STATE_QUERY, query)
     }
 
     private inner class AppAdapter : RecyclerView.Adapter<AppHolder>() {
@@ -301,6 +447,11 @@ class PushNotificationAddAppFragment : Fragment() {
 
     companion object {
         private const val STATE_SELECTED = "selected_apps"
+        private const val STATE_QUERY = "search_query"
+        private val DIACRITICS = Regex("\\p{Mn}+")
+
+        private fun fold(text: String): String =
+                Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD).replace(DIACRITICS, "").replace('đ', 'd')
         private const val MIN_LOADING_MS = 600L
         private const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
         private val PAYLOAD_SELECTION = Any()

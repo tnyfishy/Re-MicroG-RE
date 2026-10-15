@@ -105,6 +105,8 @@
     <string name="gcm_ping_custom_message">Khoảng thời gian tính bằng giây (tối thiểu 1). Khoảng càng ngắn càng sớm phát hiện mất kết nối nhưng tốn pin và dữ liệu hơn, và Android vẫn có thể hoãn ping khi máy đang nghỉ.</string>
     <string name="gcm_ping_custom_hint">Số giây</string>
     <string name="gcm_ping_custom_invalid">Nhập số giây nguyên, tối thiểu 1</string>
+    <string name="push_add_app_search_hint">Tìm ứng dụng</string>
+    <string name="push_add_app_search_clear">Xóa tìm kiếm</string>
     <string name="keep_alive_done">Xong</string>
     <string name="keep_alive_later">Để sau</string>
     <string name="pref_test_summary_running">Đang chạy…</string>
