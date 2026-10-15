@@ -8,6 +8,7 @@ package org.microg.gms.ui
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import org.microg.gms.gcm.GcmDatabase
 import java.io.File
 
 /**
@@ -22,6 +23,7 @@ object RootKeepAlive {
     private const val TAG = "GmsRootKeepAlive"
     private const val FLAG_FILE = "root_keep_alive"
     private const val SU_TIMEOUT_MS = 15000L
+    private val PACKAGE_NAME = Regex("^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$")
 
     @JvmStatic
     fun isEnabled(context: Context): Boolean = File(context.filesDir, FLAG_FILE).exists()
@@ -66,6 +68,33 @@ object RootKeepAlive {
                 "for p in \$(pidof $pkg) \$(pidof $pkg:persistent); do echo -1000 > /proc/\$p/oom_score_adj; done"
         ))
         Log.d(TAG, "Applied root keep-alive: ${output?.trim()}")
+        allowPushApps(context)
+    }
+
+    /**
+     * Apps receiving push messages are woken for each message by real Play Services through a
+     * privileged temporary allowlist that a user-installed app cannot use. With root, exempt them
+     * from battery restrictions instead, so their messages are handled right away.
+     */
+    private fun allowPushApps(context: Context) {
+        val packages = try {
+            val database = GcmDatabase(context)
+            try {
+                database.appList.filter { it.allowRegister }.map { it.packageName }
+            } finally {
+                database.close()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Cannot read push apps", e)
+            return
+        }
+        // Package names go into a shell command: only accept real package names
+        val safe = packages.filter { PACKAGE_NAME.matches(it) }
+        if (safe.isEmpty()) return
+        val output = runAsRoot(safe.flatMap {
+            listOf("dumpsys deviceidle whitelist +$it", "cmd appops set $it RUN_ANY_IN_BACKGROUND allow")
+        })
+        Log.d(TAG, "Allowed ${safe.size} push apps in background: ${output?.trim()}")
     }
 
     /** Runs the commands in one root shell. Returns its output, or null without root or on timeout. */

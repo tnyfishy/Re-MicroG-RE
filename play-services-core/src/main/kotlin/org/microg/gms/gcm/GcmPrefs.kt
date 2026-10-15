@@ -38,8 +38,10 @@ data class GcmPrefs(
         const val PREF_NETWORK_ROAMING = Gcm.NETWORK_ROAMING
         const val PREF_NETWORK_OTHER = Gcm.NETWORK_OTHER
 
-        private const val MIN_INTERVAL = 5 * 60 * 1000 // 5 minutes
-        private const val MAX_INTERVAL = 15 * 60 * 1000 // 15 minutes
+        // Carriers and routers often drop idle connections after a few minutes without telling
+        // either side; messages then wait until the next heartbeat notices. Keep it short.
+        private const val MIN_INTERVAL = 2 * 60 * 1000 // 2 minutes
+        private const val MAX_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
         @JvmStatic
         fun get(context: Context): GcmPrefs {
@@ -119,15 +121,18 @@ data class GcmPrefs(
 
     fun getHeartbeatMsFor(pref: String): Int {
         return if (PREF_NETWORK_ROAMING == pref) {
-            if (networkRoaming != 0) networkRoaming * 60000 else learntMobileInterval
+            if (networkRoaming != 0) networkRoaming * 60000 else learnt(learntMobileInterval)
         } else if (PREF_NETWORK_MOBILE == pref) {
-            if (networkMobile != 0) networkMobile * 60000 else learntMobileInterval
+            if (networkMobile != 0) networkMobile * 60000 else learnt(learntMobileInterval)
         } else if (PREF_NETWORK_WIFI == pref) {
-            if (networkWifi != 0) networkWifi * 60000 else learntWifiInterval
+            if (networkWifi != 0) networkWifi * 60000 else learnt(learntWifiInterval)
         } else {
-            if (networkOther != 0) networkOther * 60000 else learntOtherInterval
+            if (networkOther != 0) networkOther * 60000 else learnt(learntOtherInterval)
         }
     }
+
+    // Intervals learnt by older versions may be longer than the current maximum
+    private fun learnt(interval: Int): Int = max(MIN_INTERVAL, min(interval, MAX_INTERVAL))
 
     fun learnTimeout(context: Context, pref: String) {
         Log.d("GmsGcmPrefs", "learnTimeout: $pref")

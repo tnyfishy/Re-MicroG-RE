@@ -213,6 +213,8 @@ class PushNotificationAddAppFragment : Fragment() {
                 }
             }
             Toast.makeText(appContext, appContext.getString(R.string.push_add_app_added, toAdd.size), Toast.LENGTH_SHORT).show()
+            // In root mode, newly added apps get the same background exemption as the others
+            RootKeepAlive.applyIfEnabled(appContext)
             // Back to the Cloud Messaging screen, which reloads its list on resume
             if (isAdded) findNavController().popBackStack()
         }

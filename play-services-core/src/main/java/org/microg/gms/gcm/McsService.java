@@ -640,6 +640,9 @@ public class McsService extends Service implements Handler.Callback {
             intent.putExtra(EXTRA_RAWDATA_BASE64, Base64.encodeToString(msg.raw_data.toByteArray(), Base64.DEFAULT));
             intent.putExtra(EXTRA_RAWDATA, msg.raw_data.toByteArray());
         }
+        // Push messages go through the foreground broadcast queue, so they are not held back
+        // behind ordinary background broadcasts
+        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         if (app.wakeForDelivery) {
             intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         } else {
