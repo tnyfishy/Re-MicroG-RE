@@ -122,7 +122,7 @@ public class McsService extends Service implements Handler.Callback {
     // process, with the CPU kept awake. Alarms are throttled by the system while the device idles.
     private static final int LIVE_TIMER_MAX_MS = 60000;
     private static final int WATCHDOG_REARM_MS = 20000;
-    private static final int PREFS_CACHE_MS = 5000;
+    private static final int PREFS_CACHE_MS = 30000;
     private static final int MSG_NETWORK_CHANGED = 50;
     private static final String PUSH_RUNNING_FILE = "push_running";
     public static final String ACTION_NETWORK_CHANGED = "org.microg.gms.gcm.NETWORK_CHANGED";
@@ -134,6 +134,7 @@ public class McsService extends Service implements Handler.Callback {
     private static String connectedNetwork = null;
     private static PowerManager.WakeLock keepLock;
     private static WifiManager.WifiLock wifiLock;
+    private static final java.util.concurrent.ExecutorService persistExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     private static GcmPrefs cachedPrefs;
     private static long cachedPrefsAt;
     private static long lastHeartbeatAckElapsedRealtime = -1;
@@ -200,7 +201,7 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     private static void logd(Context context, String msg) {
-        if (context == null || GcmPrefs.get(context).isGcmLogEnabled()) Log.d(TAG, msg);
+        if (context == null || prefs(context).isGcmLogEnabled()) Log.d(TAG, msg);
     }
 
     @Override
@@ -724,13 +725,24 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     private void handleCloudMessage(DataMessageStanza message) {
-        if (message.persistent_id != null) {
-            GcmPrefs.get(this).extendLastPersistedId(this, message.persistent_id);
-        }
+        // Hand the message to the app first. Saving its id goes through the settings provider of
+        // the main process, which can be asleep or not even running: waiting for it here delayed
+        // every notification.
         if (SELF_CATEGORY.equals(message.category)) {
             handleSelfMessage(message);
         } else {
             handleAppMessage(message);
+        }
+        if (message.persistent_id != null) {
+            final Context context = getApplicationContext();
+            final String persistentId = message.persistent_id;
+            persistExecutor.execute(() -> {
+                try {
+                    GcmPrefs.get(context).extendLastPersistedId(context, persistentId);
+                } catch (Exception e) {
+                    Log.w(TAG, "Cannot save the message id", e);
+                }
+            });
         }
     }
 
@@ -851,6 +863,8 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     private void addPowerSaveTempWhitelistApp(String packageName) {
+        // With root, exempt the app for the duration of this message (see RootKeepAlive)
+        org.microg.gms.ui.RootKeepAlive.wakeApp(this, packageName);
         if (SDK_INT >= 31) {
             try {
                 if (addToTemporaryAllowListMethod != null && powerExemptionManager != null) {

@@ -47,6 +47,77 @@ object RootKeepAlive {
     @JvmStatic
     fun disable(context: Context) {
         File(context.filesDir, FLAG_FILE).delete()
+        synchronized(shellLock) { closeShell() }
+    }
+
+    // A root shell that stays open, so waking an app for a message costs milliseconds, not a new su
+    private val shellLock = Any()
+    private var shell: Process? = null
+    private var shellInput: java.io.BufferedWriter? = null
+    private val shellDone = java.util.concurrent.LinkedBlockingQueue<Boolean>()
+    private val lastWake = HashMap<String, Long>()
+
+    /**
+     * Called right before a push message is handed to [packageName]: lets the app run and use the
+     * network for a while, like the allowlist real Play Services grants. Does nothing without root mode.
+     */
+    @JvmStatic
+    fun wakeApp(context: Context, packageName: String) {
+        if (!PACKAGE_NAME.matches(packageName) || !isEnabled(context)) return
+        synchronized(shellLock) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - (lastWake[packageName] ?: 0L) < 2000L) return
+            lastWake[packageName] = now
+            try {
+                val writer = openShell() ?: return
+                shellDone.clear()
+                writer.write("cmd deviceidle tempwhitelist -d 30000 $packageName >/dev/null 2>&1; " +
+                        "cmd activity set-standby-bucket $packageName active >/dev/null 2>&1; echo done")
+                writer.newLine()
+                writer.flush()
+                // Short wait: the message should not be held back long if root is slow
+                shellDone.poll(400, java.util.concurrent.TimeUnit.MILLISECONDS)
+            } catch (e: Exception) {
+                Log.w(TAG, "Cannot wake $packageName", e)
+                closeShell()
+            }
+        }
+    }
+
+    private fun openShell(): java.io.BufferedWriter? {
+        val running = shell?.let {
+            try {
+                it.exitValue()
+                false
+            } catch (_: IllegalThreadStateException) {
+                true
+            }
+        } ?: false
+        if (running) return shellInput
+        closeShell()
+        val process = try {
+            ProcessBuilder("su").redirectErrorStream(true).start()
+        } catch (e: Exception) {
+            return null
+        }
+        shell = process
+        shellInput = process.outputStream.bufferedWriter()
+        Thread({
+            try {
+                process.inputStream.bufferedReader().forEachLine { if (it == "done") shellDone.offer(true) }
+            } catch (_: Exception) {
+            }
+        }, "RootShellReader").start()
+        return shellInput
+    }
+
+    private fun closeShell() {
+        try {
+            shell?.destroy()
+        } catch (_: Exception) {
+        }
+        shell = null
+        shellInput = null
     }
 
     /** Re-applies the measures, e.g. when the push process restarted. Does nothing when off. */
