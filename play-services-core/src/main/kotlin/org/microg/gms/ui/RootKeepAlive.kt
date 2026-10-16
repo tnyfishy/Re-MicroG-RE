@@ -342,6 +342,20 @@ startapp() {
   c=§(cmd package query-services --components -a com.google.firebase.MESSAGING_EVENT -p §1 2>/dev/null | head -n 1)
   [ -n "§c" ] && am start-service -n "§c" -a com.google.firebase.MESSAGING_EVENT >/dev/null 2>&1
 }
+# revive PACKAGE: start a dead app again at once, but not more than every 10s (every 60s after
+# 3 failed tries), so an app that cannot start does not make this loop busy
+revive() {
+  f=§DIR/root_rv_§1
+  now=§(date +%s)
+  last=0
+  n=0
+  [ -f §f ] && read last n < §f
+  gap=10
+  [ "§{n:-0}" -ge 3 ] && gap=60
+  [ §((now - §{last:-0})) -lt §gap ] && return 0
+  echo "§now §((§{n:-0} + 1))" > §f
+  startapp §1
+}
 tick=0
 fails=0
 while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
@@ -352,25 +366,31 @@ while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
   else
     fails=0
   fi
+  # An added app that was closed, killed or force-stopped is brought back within a couple of seconds
+  if opt autostart 1 && [ -f §DIR/push_running ]; then
+    for a in §(cat §DIR/root_push_apps 2>/dev/null); do
+      if pidof §a >/dev/null 2>&1; then
+        [ -f §DIR/root_rv_§a ] && rm -f §DIR/root_rv_§a
+      else
+        revive §a
+      fi
+    done
+  fi
   tick=§((tick + 1))
-  if [ §((tick % 12)) -eq 0 ]; then
+  if [ §((tick % 30)) -eq 0 ]; then
     keepcheck
     for p in §(pidof §PKG:persistent) §(pidof §PKG); do echo -1000 > /proc/§p/oom_score_adj 2>/dev/null; done
     for a in §(cat §DIR/root_push_apps 2>/dev/null); do
       am set-standby-bucket §a active >/dev/null 2>&1
       cmd appops set §a RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1
-      # an app that was killed (swiped away, "clear all") comes back in the background
-      if opt autostart 1 && [ -f §DIR/push_running ]; then
-        pidof §a >/dev/null 2>&1 || startapp §a
-      fi
     done
   fi
   # about every 10 minutes: keep Power Keeper from restricting this app and the push apps
-  if [ §((tick % 120)) -eq 0 ]; then
+  if [ §((tick % 300)) -eq 0 ]; then
     pk §PKG
     for a in §(cat §DIR/root_push_apps 2>/dev/null); do pk §a; done
   fi
-  sleep 5
+  sleep 2
 done
 rm -f §DIR/root_watchdog.pid
 """

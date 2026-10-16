@@ -313,7 +313,7 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="pref_root_protect_title">Keep processes when closing</string>
     <string name="pref_root_protect_summary">Swiping a card away or \"Clear all\" removes it from Recents but leaves the background processes of this app and the added apps running</string>
     <string name="pref_root_autostart_title">Start in the background</string>
-    <string name="pref_root_autostart_summary">Start this app and the added apps again when they are not running, even without battery optimization exemption or autostart</string>
+    <string name="pref_root_autostart_summary">Bring this app and the added apps back within seconds when they are closed, killed or force-stopped, even without battery optimization exemption or autostart</string>
     <string name="pref_root_enabled">Root mode enabled</string>
     <string name="pref_root_unavailable">Root access is not available</string>
     <string name="push_add_app_add_selected">Add (%1$d)</string>
