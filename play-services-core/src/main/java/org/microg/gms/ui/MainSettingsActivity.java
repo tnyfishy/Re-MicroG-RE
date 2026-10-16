@@ -53,6 +53,8 @@ public class MainSettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Vietnamese by default on the first start (before Android 13 this needs an activity)
+        LanguageDefaults.applyOnce(this);
 
         Intent intent = getIntent();
         for (SettingsProvider settingsProvider : getAllSettingsProviders(this)) {
