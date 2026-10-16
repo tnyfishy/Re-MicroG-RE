@@ -27,7 +27,11 @@ import android.content.pm.PackageManager;
 import android.content.pm.PermissionInfo;
 import android.content.pm.ResolveInfo;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -64,8 +68,10 @@ import org.microg.gms.gcm.mcs.LoginResponse;
 import org.microg.gms.gcm.mcs.Setting;
 
 import java.io.Closeable;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -107,7 +113,29 @@ public class McsService extends Service implements Handler.Callback {
     // On bad mobile network a ping can take >60s, so we wait for an ACK for 90s
     private static final int HEARTBEAT_ACK_AFTER_PING_TIMEOUT_MS = 90000;
 
+    // Dead-connection detection must not wait 90s when the user asked for fast pings
+    private static final int MIN_HEARTBEAT_ACK_TIMEOUT_MS = 15000;
+    private static final int CONNECT_TIMEOUT_MS = 20000;
+    private static final int HANDSHAKE_TIMEOUT_MS = 20000;
+    private static final int MAX_RECONNECT_DELAY_MS = 30000;
+    // Up to this interval (or always, with "keep awake") heartbeats run on a timer inside the
+    // process, with the CPU kept awake. Alarms are throttled by the system while the device idles.
+    private static final int LIVE_TIMER_MAX_MS = 60000;
+    private static final int WATCHDOG_REARM_MS = 20000;
+    private static final int PREFS_CACHE_MS = 5000;
+    private static final int MSG_NETWORK_CHANGED = 50;
+    private static final String PUSH_RUNNING_FILE = "push_running";
+    public static final String ACTION_NETWORK_CHANGED = "org.microg.gms.gcm.NETWORK_CHANGED";
+
     private static long lastHeartbeatPingElapsedRealtime = -1;
+    // First ping that still has no sign of life from the server (-1: none pending)
+    private static long firstUnackedPingElapsedRealtime = -1;
+    private static long lastWatchdogArm = 0;
+    private static String connectedNetwork = null;
+    private static PowerManager.WakeLock keepLock;
+    private static WifiManager.WifiLock wifiLock;
+    private static GcmPrefs cachedPrefs;
+    private static long cachedPrefsAt;
     private static long lastHeartbeatAckElapsedRealtime = -1;
     private static long lastIncomingNetworkRealtime = 0;
     private static long startTimestamp = 0;
@@ -186,6 +214,13 @@ public class McsService extends Service implements Handler.Callback {
         powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         // Root users can opt in to extra keep-alive measures (see RootKeepAlive)
         org.microg.gms.ui.RootKeepAlive.applyIfEnabled(this);
+        registerNetworkWake(this);
+        // Tells the root watchdog (see RootKeepAlive) that the push service is meant to be running
+        try {
+            new File(getFilesDir(), PUSH_RUNNING_FILE).createNewFile();
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot write the running marker", e);
+        }
         if (SDK_INT >= 23 && checkSelfPermission("android.permission.CHANGE_DEVICE_IDLE_TEMP_WHITELIST") == PackageManager.PERMISSION_GRANTED) {
             try {
                 if (SDK_INT >= 31) {
@@ -223,6 +258,7 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     public static void stop(Context context) {
+        new File(context.getFilesDir(), PUSH_RUNNING_FILE).delete();
         context.stopService(new Intent(context, McsService.class));
         closeAll();
     }
@@ -231,6 +267,7 @@ public class McsService extends Service implements Handler.Callback {
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         alarmManager.cancel(heartbeatIntent);
+        releaseKeepLocks();
         closeAll();
         database.close();
         super.onDestroy();
@@ -262,6 +299,16 @@ public class McsService extends Service implements Handler.Callback {
         return null;
     }
 
+    /** Settings come from a content provider; the heartbeat must not query it on every tick. */
+    private static synchronized GcmPrefs prefs(Context context) {
+        long now = SystemClock.elapsedRealtime();
+        if (cachedPrefs == null || now - cachedPrefsAt > PREFS_CACHE_MS) {
+            cachedPrefs = GcmPrefs.get(context);
+            cachedPrefsAt = now;
+        }
+        return cachedPrefs;
+    }
+
     public synchronized static boolean isConnected(Context context) {
         warnIfNotPersistentProcess(McsService.class);
         if (inputStream == null || !inputStream.isAlive() || outputStream == null || !outputStream.isAlive()) {
@@ -269,16 +316,18 @@ public class McsService extends Service implements Handler.Callback {
             return false;
         }
         // consider connection to be dead if we did not receive an ack within 90s to our ping
-        int heartbeatMs = GcmPrefs.get(context).getHeartbeatMsFor(activeNetworkPref);
+        int heartbeatMs = prefs(context).getHeartbeatMsFor(activeNetworkPref);
         // if disabled for active network, heartbeatMs will be -1
         if (heartbeatMs < 0) {
             closeAll();
             return false;
         } else {
-            boolean noAckReceived = lastHeartbeatAckElapsedRealtime < lastHeartbeatPingElapsedRealtime;
-            long timeSinceLastPing = SystemClock.elapsedRealtime() - lastHeartbeatPingElapsedRealtime;
-            if (noAckReceived && timeSinceLastPing > HEARTBEAT_ACK_AFTER_PING_TIMEOUT_MS) {
-                logd(null, "No heartbeat for " + timeSinceLastPing / 1000 + "s, connection assumed to be dead after 90s");
+            // Measured from the first ping nobody answered: with a short interval a newer ping is
+            // always only moments old, which would hide a dead connection forever.
+            long timeout = Math.min(HEARTBEAT_ACK_AFTER_PING_TIMEOUT_MS, Math.max(MIN_HEARTBEAT_ACK_TIMEOUT_MS, heartbeatMs * 3L));
+            long timeSinceFirstUnacked = firstUnackedPingElapsedRealtime < 0 ? 0 : SystemClock.elapsedRealtime() - firstUnackedPingElapsedRealtime;
+            if (firstUnackedPingElapsedRealtime >= 0 && timeSinceFirstUnacked > timeout) {
+                logd(null, "No answer for " + timeSinceFirstUnacked / 1000 + "s, connection assumed to be dead after " + timeout / 1000 + "s");
                 GcmPrefs.get(context).learnTimeout(context, activeNetworkPref);
                 return false;
             }
@@ -314,13 +363,32 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     public void scheduleHeartbeat(Context context) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-
-        int heartbeatMs = GcmPrefs.get(this).getHeartbeatMsFor(activeNetworkPref);
+        int heartbeatMs = prefs(this).getHeartbeatMsFor(activeNetworkPref);
         if (heartbeatMs < 0) {
+            releaseKeepLocks();
             closeAll();
+            return;
         }
         logd(context, "Scheduling heartbeat in " + heartbeatMs / 1000 + " seconds...");
+        boolean live = heartbeatMs <= LIVE_TIMER_MAX_MS || KeepAwake.isEnabled(this);
+        if (live && rootHandler != null) {
+            holdKeepLocks();
+            rootHandler.removeMessages(MSG_HEARTBEAT);
+            rootHandler.sendMessageDelayed(rootHandler.obtainMessage(MSG_HEARTBEAT, "timer"), heartbeatMs);
+            // Safety net in case the timer is ever lost; it is only re-armed now and then
+            long now = SystemClock.elapsedRealtime();
+            if (now - lastWatchdogArm > WATCHDOG_REARM_MS) {
+                lastWatchdogArm = now;
+                armHeartbeatAlarm(context, Math.max(heartbeatMs, 60000));
+            }
+            return;
+        }
+        releaseKeepLocks();
+        armHeartbeatAlarm(context, heartbeatMs);
+    }
+
+    private void armHeartbeatAlarm(Context context, long heartbeatMs) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         if (SDK_INT >= 23) {
             // This is supposed to work even when running in idle and without battery optimization disabled
             try {
@@ -340,13 +408,90 @@ public class McsService extends Service implements Handler.Callback {
         } else {
             alarmManager.set(ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + heartbeatMs, heartbeatIntent);
         }
+    }
 
+    /** CPU and Wi-Fi stay awake while the connection is up, so timers and incoming data are not delayed. */
+    private void holdKeepLocks() {
+        synchronized (McsService.class) {
+            holdKeepLocksLocked();
+        }
+    }
+
+    private void holdKeepLocksLocked() {
+        try {
+            if (keepLock == null) {
+                keepLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "mcs:live");
+                keepLock.setReferenceCounted(false);
+            }
+            if (!keepLock.isHeld()) keepLock.acquire();
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot hold the wake lock", e);
+        }
+        try {
+            if (wifiLock == null) {
+                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                if (wifiManager != null) {
+                    wifiLock = wifiManager.createWifiLock(SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF, "mcs:wifi");
+                    wifiLock.setReferenceCounted(false);
+                }
+            }
+            if (wifiLock != null && !wifiLock.isHeld()) wifiLock.acquire();
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot hold the Wi-Fi lock", e);
+        }
+    }
+
+    private static synchronized void releaseKeepLocks() {
+        try {
+            if (keepLock != null && keepLock.isHeld()) keepLock.release();
+        } catch (Exception ignored) {
+        }
+        try {
+            if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static String describeActiveNetwork(Context context) {
+        if (SDK_INT < 23) return null;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
+            Network network = cm.getActiveNetwork();
+            return network == null ? null : String.valueOf(network.getNetworkHandle());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Asks the system to wake the push process whenever a network comes or goes, even after the
+     * process was killed. The receiver is {@link TriggerReceiver}.
+     */
+    private static void registerNetworkWake(Context context) {
+        if (SDK_INT < 26) return;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
+            NetworkRequest request = new NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
+            Intent intent = new Intent(ACTION_NETWORK_CHANGED, null, context, TriggerReceiver.class);
+            // The system adds the network to the intent, so it must be mutable
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT | (SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+            cm.registerNetworkCallback(request, PendingIntent.getBroadcast(context, 2, intent, flags));
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot register the network wake-up", e);
+        }
+    }
+
+    /** The network changed (Wi-Fi <-> mobile data...): a socket from the old one is dead, so reconnect now. */
+    public static void onNetworkChanged() {
+        Handler handler = rootHandler;
+        if (handler != null) handler.sendMessage(handler.obtainMessage(MSG_NETWORK_CHANGED));
     }
 
     public synchronized static long getCurrentDelay() {
-        long delay = currentDelay == 0 ? 5000 : currentDelay;
-        if (currentDelay < 60000) currentDelay += 10000;
-        if (currentDelay >= 60000 && currentDelay < 600000) currentDelay += 60000;
+        // 3s, 6s, 12s, 24s, then every 30s: coming back quickly matters more than saving a few tries
+        long delay = currentDelay == 0 ? 3000 : currentDelay;
+        currentDelay = Math.min(delay * 2, MAX_RECONNECT_DELAY_MS);
         return delay;
     }
 
@@ -500,10 +645,16 @@ public class McsService extends Service implements Handler.Callback {
         this.wasTornDown = false;
 
         logd(this, "Starting MCS connection to port " + port + "...");
-        Socket socket = new Socket(SERVICE_HOST, port);
+        Socket socket = new Socket();
+        socket.setKeepAlive(true);
+        socket.setTcpNoDelay(true);
+        // A stuck attempt on a bad network would block the whole connection thread
+        socket.connect(new InetSocketAddress(SERVICE_HOST, port), CONNECT_TIMEOUT_MS);
         logd(this, "Connected to " + SERVICE_HOST + ":" + port);
+        socket.setSoTimeout(HANDSHAKE_TIMEOUT_MS);
         sslSocket = SSLContext.getDefault().getSocketFactory().createSocket(socket, SERVICE_HOST, port, true);
         startHandshake((SSLSocket) sslSocket);
+        socket.setSoTimeout(0);
         logd(this, "Activated SSL with " + SERVICE_HOST + ":" + port);
         inputStream = new McsInputStream(sslSocket.getInputStream(), rootHandler);
         outputStream = new McsOutputStream(sslSocket.getOutputStream(), rootHandler);
@@ -514,6 +665,8 @@ public class McsService extends Service implements Handler.Callback {
         lastHeartbeatPingElapsedRealtime = SystemClock.elapsedRealtime();
         lastHeartbeatAckElapsedRealtime = SystemClock.elapsedRealtime();
         lastIncomingNetworkRealtime = SystemClock.elapsedRealtime();
+        firstUnackedPingElapsedRealtime = -1;
+        connectedNetwork = describeActiveNetwork(this);
         scheduleHeartbeat(this);
     }
 
@@ -590,8 +743,9 @@ public class McsService extends Service implements Handler.Callback {
     }
 
     private void handleHeartbeatAck(HeartbeatAck ack) {
-        GcmPrefs.get(this).learnReached(this, activeNetworkPref, SystemClock.elapsedRealtime() - lastIncomingNetworkRealtime);
+        prefs(this).learnReached(this, activeNetworkPref, SystemClock.elapsedRealtime() - lastIncomingNetworkRealtime);
         lastHeartbeatAckElapsedRealtime = SystemClock.elapsedRealtime();
+        firstUnackedPingElapsedRealtime = -1;
         wakeLock.release();
     }
 
@@ -789,12 +943,22 @@ public class McsService extends Service implements Handler.Callback {
                     }
                     send(MCS_HEARTBEAT_PING_TAG, ping.build());
                     lastHeartbeatPingElapsedRealtime = SystemClock.elapsedRealtime();
+                    if (firstUnackedPingElapsedRealtime < 0) firstUnackedPingElapsedRealtime = lastHeartbeatPingElapsedRealtime;
                     scheduleHeartbeat(this);
                 } else {
                     logd(this, "Ignoring heartbeat, not connected!");
                     scheduleReconnect(this);
                 }
                 return true;
+            case MSG_NETWORK_CHANGED: {
+                String now = describeActiveNetwork(this);
+                if (inputStream != null && now != null && !now.equals(connectedNetwork)) {
+                    logd(this, "Network changed from " + connectedNetwork + " to " + now + ", reconnecting");
+                    resetCurrentDelay();
+                    connect();
+                }
+                return true;
+            }
             case MSG_ACK:
                 logd(this, "Ack initiated, reason: " + msg.obj);
                 if (isConnected(this)) {
@@ -855,6 +1019,7 @@ public class McsService extends Service implements Handler.Callback {
             }
             resetCurrentDelay();
             lastIncomingNetworkRealtime = SystemClock.elapsedRealtime();
+            firstUnackedPingElapsedRealtime = -1;
         } catch (Exception e) {
             Log.w(TAG, "Exception when handling input: " + message, e);
             rootHandler.sendMessage(rootHandler.obtainMessage(MSG_TEARDOWN, e));
@@ -896,6 +1061,8 @@ public class McsService extends Service implements Handler.Callback {
         scheduleReconnect(this);
 
         alarmManager.cancel(heartbeatIntent);
+        if (rootHandler != null) rootHandler.removeMessages(MSG_HEARTBEAT);
+        releaseKeepLocks();
         if (wakeLock != null) {
             try {
                 wakeLock.release();

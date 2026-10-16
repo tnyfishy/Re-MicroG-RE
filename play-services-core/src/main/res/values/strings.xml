@@ -305,7 +305,9 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="pref_theme_dark">Dark</string>
     <string name="pref_theme_amoled">AMOLED</string>
     <string name="pref_root_mode_title">Root mode</string>
-    <string name="pref_root_mode_summary">Advanced: keep the app always running using root access</string>
+    <string name="pref_root_mode_summary">Advanced: restart the app within seconds when it is closed or killed, and exempt added apps from power saving, using root access</string>
+    <string name="pref_keep_awake_title">Keep awake</string>
+    <string name="pref_keep_awake_summary">Stay connected like chat apps: quiet notification, CPU and Wi-Fi kept awake. Uses more battery</string>
     <string name="pref_root_enabled">Root mode enabled</string>
     <string name="pref_root_unavailable">Root access is not available</string>
     <string name="push_add_app_add_selected">Add (%1$d)</string>

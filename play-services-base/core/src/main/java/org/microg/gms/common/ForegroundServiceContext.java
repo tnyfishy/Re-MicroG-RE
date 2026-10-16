@@ -17,6 +17,8 @@ import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import java.io.File;
+
 import org.microg.gms.base.core.R;
 
 import static android.os.Build.VERSION.SDK_INT;
@@ -33,11 +35,20 @@ public class ForegroundServiceContext extends ContextWrapper {
     // exempt from battery optimization, so this one stays in the foreground there.
     private static final String PUSH_SERVICE = "org.microg.gms.gcm.McsService";
 
+    // The "keep awake" option is a flag file (the push service runs in its own process, where
+    // shared preferences would not be up to date). Absent means on.
+    private static final String KEEP_AWAKE_OFF_FLAG = "keep_awake_off";
+    private static final String CHANNEL_ID = "push-connection";
+    private static final String OLD_CHANNEL_ID = "foreground-service";
+
     private boolean shouldRunInForeground(Intent service) {
         if (SDK_INT < 26) return false;
-        if (!isIgnoringBatteryOptimizations()) return true;
         ComponentName component = service.getComponent();
-        return ForegroundServiceOemUtils.isXiaomi() && component != null && PUSH_SERVICE.equals(component.getClassName());
+        boolean isPushService = component != null && PUSH_SERVICE.equals(component.getClassName());
+        // Like chat apps: the push connection runs as a foreground service with a quiet notification
+        if (isPushService && !new File(getFilesDir(), KEEP_AWAKE_OFF_FLAG).exists()) return true;
+        if (!isIgnoringBatteryOptimizations()) return true;
+        return ForegroundServiceOemUtils.isXiaomi() && isPushService;
     }
 
     @Override
@@ -121,10 +132,13 @@ public class ForegroundServiceContext extends ContextWrapper {
     private static Notification buildForegroundNotification(Context context, String serviceName) {
         // Notification channel (high importance, mirrors MicroG-RE)
         String channelName = context.getString(R.string.foreground_service_notification_title);
-        NotificationChannel channel = new NotificationChannel("foreground-service", channelName, NotificationManager.IMPORTANCE_HIGH);
+        // Low importance: always there, but without sound or pop-ups
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_LOW);
         channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
         channel.setShowBadge(false);
-        context.getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
+        notificationManager.deleteNotificationChannel(OLD_CHANNEL_ID);
 
         // Title and text
         String appTitle = context.getApplicationInfo().loadLabel(context.getPackageManager()).toString();
@@ -141,7 +155,7 @@ public class ForegroundServiceContext extends ContextWrapper {
         // Open notification settings in foreground service category
         Intent notificationCategoryIntent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName())
-                .putExtra(Settings.EXTRA_CHANNEL_ID, "foreground-service");
+                .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID);
         PendingIntent notificationCategoryPendingIntent = PendingIntent.getActivity(
                 context, 1, notificationCategoryIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -176,7 +190,7 @@ public class ForegroundServiceContext extends ContextWrapper {
                 .setContentTitle(notifyTitle)
                 .setContentText(firstLine)
                 .setStyle(new Notification.BigTextStyle().bigText(firstLine + "\n" + secondLine))
-                .setPriority(Notification.PRIORITY_HIGH)
+                .setPriority(Notification.PRIORITY_LOW)
                 .setShowWhen(false)
                 .setContentIntent(mainSettingsPendingIntent)
                 .addAction(batteryAction)

@@ -8,7 +8,9 @@ package org.microg.gms.ui
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import org.microg.gms.common.ForegroundServiceContext
 import org.microg.gms.gcm.GcmDatabase
+import org.microg.gms.gcm.McsConstants
 import java.io.File
 
 /**
@@ -22,6 +24,10 @@ import java.io.File
 object RootKeepAlive {
     private const val TAG = "GmsRootKeepAlive"
     private const val FLAG_FILE = "root_keep_alive"
+    private const val PUSH_APPS_FILE = "root_push_apps"
+    private const val WATCHDOG_SCRIPT = "root_watchdog.sh"
+    private const val WATCHDOG_PID = "root_watchdog.pid"
+    private const val PUSH_SERVICE = "org.microg.gms.gcm.McsService"
     private const val SU_TIMEOUT_MS = 15000L
     private val PACKAGE_NAME = Regex("^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$")
 
@@ -61,6 +67,10 @@ object RootKeepAlive {
                 "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow",
                 // Do not pause the app (or revoke its permissions) for being unused
                 "cmd appops set $pkg AUTO_REVOKE_PERMISSIONS_IF_UNUSED ignore",
+                // Xiaomi's "autostart" permission, and the most permissive standby bucket
+                "cmd appops set $pkg 10008 allow",
+                "am set-standby-bucket $pkg active",
+                "am set-inactive $pkg false",
                 // Lets the app write system settings itself afterwards
                 "pm grant $pkg android.permission.WRITE_SECURE_SETTINGS",
                 // Never pick this app's processes first when memory runs low
@@ -69,6 +79,35 @@ object RootKeepAlive {
         ))
         Log.d(TAG, "Applied root keep-alive: ${output?.trim()}")
         allowPushApps(context)
+        startWatchdog(context)
+    }
+
+    /**
+     * A small root shell loop that outlives this app: when the system or a "clean up" button
+     * (Recents "close all", a battery manager...) kills the push process, it starts the push
+     * service again within seconds. It also keeps re-applying the exemptions of the push apps.
+     * It stops by itself when root mode is switched off or the push service is stopped on purpose
+     * (the service removes its "running" marker file then).
+     */
+    private fun startWatchdog(context: Context) {
+        val pkg = context.packageName
+        val dir = context.filesDir.absolutePath
+        if (!PACKAGE_NAME.matches(pkg) || !Regex("^[A-Za-z0-9_./-]+$").matches(dir)) return
+        val script = WATCHDOG
+                .replace("@PKG@", pkg)
+                .replace("@DIR@", dir)
+                .replace("@SERVICE@", PUSH_SERVICE)
+                .replace("@ACTION@", McsConstants.ACTION_CONNECT)
+                .replace("@FOREGROUND@", ForegroundServiceContext.EXTRA_FOREGROUND)
+                .replace('§', '$')
+        val output = runAsRoot(listOf(
+                "[ -f $dir/$WATCHDOG_PID ] && kill \$(cat $dir/$WATCHDOG_PID) 2>/dev/null",
+                "cat > $dir/$WATCHDOG_SCRIPT <<'WATCHDOG_EOF'",
+                script,
+                "WATCHDOG_EOF",
+                "nohup setsid sh $dir/$WATCHDOG_SCRIPT >/dev/null 2>&1 &"
+        ))
+        Log.d(TAG, "Started root watchdog: ${output?.trim()}")
     }
 
     /**
@@ -90,12 +129,56 @@ object RootKeepAlive {
         }
         // Package names go into a shell command: only accept real package names
         val safe = packages.filter { PACKAGE_NAME.matches(it) }
+        // The watchdog re-applies the exemptions of these apps from time to time
+        try {
+            File(context.filesDir, PUSH_APPS_FILE).writeText(safe.joinToString("\n"))
+        } catch (e: Exception) {
+            Log.w(TAG, "Cannot write the push app list", e)
+        }
         if (safe.isEmpty()) return
         val output = runAsRoot(safe.flatMap {
-            listOf("dumpsys deviceidle whitelist +$it", "cmd appops set $it RUN_ANY_IN_BACKGROUND allow")
+            listOf(
+                    "dumpsys deviceidle whitelist +$it",
+                    "cmd appops set $it RUN_ANY_IN_BACKGROUND allow",
+                    "cmd appops set $it 10008 allow",
+                    "am set-standby-bucket $it active",
+                    "am set-inactive $it false"
+            )
         })
         Log.d(TAG, "Allowed ${safe.size} push apps in background: ${output?.trim()}")
     }
+
+    // § stands for the shell's dollar sign, @NAME@ for values filled in by startWatchdog
+    private const val WATCHDOG = """
+PKG=@PKG@
+DIR=@DIR@
+echo §§ > §DIR/root_watchdog.pid
+# Leave the app's process group, so killing the app does not kill this loop with it
+for f in /acct/cgroup.procs /dev/cg2_bpf/cgroup.procs /sys/fs/cgroup/cgroup.procs; do
+  [ -w §f ] && echo §§ > §f 2>/dev/null
+done
+tick=0
+fails=0
+while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
+  if [ -f §DIR/push_running ] && ! pidof §PKG:persistent >/dev/null 2>&1; then
+    am start-foreground-service -n §PKG/@SERVICE@ -a @ACTION@ --ez @FOREGROUND@ true >/dev/null 2>&1
+    fails=§((fails + 1))
+    if [ §fails -ge 3 ]; then sleep 60; fi
+  else
+    fails=0
+  fi
+  tick=§((tick + 1))
+  if [ §((tick % 12)) -eq 0 ]; then
+    for p in §(pidof §PKG:persistent) §(pidof §PKG); do echo -1000 > /proc/§p/oom_score_adj 2>/dev/null; done
+    for a in §(cat §DIR/root_push_apps 2>/dev/null); do
+      am set-standby-bucket §a active >/dev/null 2>&1
+      cmd appops set §a RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1
+    done
+  fi
+  sleep 5
+done
+rm -f §DIR/root_watchdog.pid
+"""
 
     /** Runs the commands in one root shell. Returns its output, or null without root or on timeout. */
     private fun runAsRoot(commands: List<String>): String? {

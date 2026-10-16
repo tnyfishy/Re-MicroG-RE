@@ -62,7 +62,8 @@ public class TriggerReceiver extends WakefulBroadcastReceiver {
                 return;
             }
 
-            if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())) {
+            boolean networkChanged = McsService.ACTION_NETWORK_CHANGED.equals(intent.getAction());
+            if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction()) || networkChanged) {
                 McsService.resetCurrentDelay();
             }
 
@@ -99,7 +100,10 @@ public class TriggerReceiver extends WakefulBroadcastReceiver {
                 startWakefulService(new ForegroundServiceContext(context), new Intent(ACTION_CONNECT, null, context, McsService.class)
                         .putExtra(EXTRA_REASON, intent));
             } else {
-                if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())) {
+                if (networkChanged) {
+                    Log.d(TAG, "Network changed while connected, checking the connection: " + intent);
+                    McsService.onNetworkChanged();
+                } else if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())) {
                     Log.d(TAG, "Ignoring " + intent + ": service is running. schedule reconnect instead.");
                     McsService.scheduleReconnect(context);
                 } else {

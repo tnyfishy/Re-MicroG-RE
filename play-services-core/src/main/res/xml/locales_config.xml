@@ -70,6 +70,7 @@
     <locale android:name="uk-UA" />
     <locale android:name="ur-IN" />
     <locale android:name="uz-UZ" />
+    <locale android:name="vi" />
     <locale android:name="zh-CN" />
     <locale android:name="zh-TW" />
     <locale android:name="zu-ZA" />

@@ -87,6 +87,14 @@
         android:title="@string/pref_theme_title"
         app:useSimpleSummaryProvider="true" />
     <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:icon="@drawable/ic_cloud_messaging"
+        android:key="pref_keep_awake"
+        android:layout="@layout/preference_material_middle"
+        android:persistent="false"
+        android:summary="@string/pref_keep_awake_summary"
+        android:title="@string/pref_keep_awake_title" />
+    <SwitchPreferenceCompat
         android:defaultValue="false"
         android:icon="@drawable/ic_key"
         android:key="pref_root_mode"

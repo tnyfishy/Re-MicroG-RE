@@ -17,6 +17,7 @@
 package org.microg.gms.ui.updater
 
 import android.app.Application
+import org.microg.gms.ui.LanguageDefaults
 import org.microg.gms.ui.ThemeManager
 
 /**
@@ -32,6 +33,7 @@ class UpdaterApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ThemeManager.install(this)
+        LanguageDefaults.applyOnce(this)
         UpdateCheckScheduler.schedule(this)
         AppUpdater.persistDevChannelIfNeeded(this)
     }

@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.microg.gms.checkin.CheckinPreferences
 import org.microg.gms.common.ForegroundServiceOemUtils
+import org.microg.gms.gcm.KeepAwake
 import org.microg.gms.gcm.GcmDatabase
 import org.microg.gms.gcm.GcmPrefs
 import org.microg.gms.safetynet.SafetyNetPreferences
@@ -111,6 +112,7 @@ class SettingsFragment : ResourceSettingsFragment() {
         }
         setupLanguagePreference()
         setupThemePreferences()
+        setupKeepAwakePreference()
         setupRootPreference()
 
         for (entry in getAllSettingsProviders(requireContext()).flatMap { it.getEntriesStatic(requireContext()) }) {
@@ -274,6 +276,15 @@ class SettingsFragment : ResourceSettingsFragment() {
         }
     }
 
+    private fun setupKeepAwakePreference() {
+        val preference = findPreference<SwitchPreferenceCompat>(PREF_KEEP_AWAKE) ?: return
+        preference.isChecked = KeepAwake.isEnabled(requireContext())
+        preference.setOnPreferenceChangeListener { _, newValue ->
+            KeepAwake.setEnabled(requireContext().applicationContext, newValue as Boolean)
+            true
+        }
+    }
+
     private fun setupRootPreference() {
         val preference = findPreference<SwitchPreferenceCompat>(PREF_ROOT_MODE) ?: return
         preference.isChecked = RootKeepAlive.isEnabled(requireContext())
@@ -375,6 +386,7 @@ class SettingsFragment : ResourceSettingsFragment() {
         const val PREF_LANGUAGE = "pref_language"
         const val PREF_PRIVACY = "pref_privacy"
         const val PREF_ROOT_MODE = "pref_root_mode"
+        const val PREF_KEEP_AWAKE = "pref_keep_awake"
         const val PREF_IGNORE_BATTERY_OPTIMIZATION = "pref_ignore_battery_optimization"
 
         private const val ACTIVITY_LAUNCHER_CONTROL = "org.microg.gms.ui.SettingsActivityLauncher"
