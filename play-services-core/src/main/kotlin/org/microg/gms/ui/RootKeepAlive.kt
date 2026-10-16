@@ -149,6 +149,7 @@ object RootKeepAlive {
                 "for p in \$(pidof $pkg) \$(pidof $pkg:persistent); do echo -1000 > /proc/\$p/oom_score_adj; done"
         ))
         Log.d(TAG, "Applied root keep-alive: ${output?.trim()}")
+        runAsRoot(listOf(POWER_KEEPER_FUNCTION.replace('§', '$'), "pk $pkg"))
         allowPushApps(context)
         startWatchdog(context)
     }
@@ -165,6 +166,7 @@ object RootKeepAlive {
         val dir = context.filesDir.absolutePath
         if (!PACKAGE_NAME.matches(pkg) || !Regex("^[A-Za-z0-9_./-]+$").matches(dir)) return
         val script = WATCHDOG
+                .replace("@PKFUNC@", POWER_KEEPER_FUNCTION)
                 .replace("@PKG@", pkg)
                 .replace("@DIR@", dir)
                 .replace("@SERVICE@", PUSH_SERVICE)
@@ -207,6 +209,7 @@ object RootKeepAlive {
             Log.w(TAG, "Cannot write the push app list", e)
         }
         if (safe.isEmpty()) return
+        runAsRoot(listOf(POWER_KEEPER_FUNCTION.replace('§', '$')) + safe.map { "pk $it" })
         val output = runAsRoot(safe.flatMap {
             listOf(
                     "dumpsys deviceidle whitelist +$it",
@@ -219,6 +222,26 @@ object RootKeepAlive {
         Log.d(TAG, "Allowed ${safe.size} push apps in background: ${output?.trim()}")
     }
 
+    /**
+     * Xiaomi's Power Keeper keeps a per-app "background control" (userTable.bgControl). Apps set to
+     * "noRestrict" are skipped by its screen-off clean-up and, through the MILLET_NO_RESTRICT_APP
+     * setting that Power Keeper writes from this table, by the system freezer. This shell function
+     * sets an app to "noRestrict" (only when it is not already, so other columns stay untouched).
+     * It does nothing on devices without Power Keeper. § stands for the shell's dollar sign.
+     */
+    private const val POWER_KEEPER_FUNCTION = """
+PKX=0
+cmd package path com.miui.powerkeeper >/dev/null 2>&1 && PKX=1
+pk() {
+  [ §PKX = 1 ] || return 0
+  r=§(content query --uri content://com.miui.powerkeeper.configure/userTable --projection bgControl --where "pkgName='§1'" 2>/dev/null)
+  case "§r" in
+    *bgControl=noRestrict*) ;;
+    *) content insert --uri content://com.miui.powerkeeper.configure/userTable --bind userId:i:0 --bind pkgName:s:§1 --bind bgControl:s:noRestrict >/dev/null 2>&1 ;;
+  esac
+}
+"""
+
     // § stands for the shell's dollar sign, @NAME@ for values filled in by startWatchdog
     private const val WATCHDOG = """
 PKG=@PKG@
@@ -228,6 +251,7 @@ echo §§ > §DIR/root_watchdog.pid
 for f in /acct/cgroup.procs /dev/cg2_bpf/cgroup.procs /sys/fs/cgroup/cgroup.procs; do
   [ -w §f ] && echo §§ > §f 2>/dev/null
 done
+@PKFUNC@
 tick=0
 fails=0
 while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
@@ -245,6 +269,11 @@ while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
       am set-standby-bucket §a active >/dev/null 2>&1
       cmd appops set §a RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1
     done
+  fi
+  # about every 10 minutes: keep Power Keeper from restricting this app and the push apps
+  if [ §((tick % 120)) -eq 0 ]; then
+    pk §PKG
+    for a in §(cat §DIR/root_push_apps 2>/dev/null); do pk §a; done
   fi
   sleep 5
 done
