@@ -311,7 +311,7 @@ Please set up a password, PIN, or pattern lock screen."</string>
     <string name="pref_root_lock_title">Lock in Recents</string>
     <string name="pref_root_lock_summary">Padlock on this app and the added apps. The cards stay in Recents</string>
     <string name="pref_root_protect_title">Keep processes when closing</string>
-    <string name="pref_root_protect_summary">When swiping away or \"Clear all\", keep the background processes of this app and the added apps</string>
+    <string name="pref_root_protect_summary">Swiping a card away or \"Clear all\" removes it from Recents but leaves the background processes of this app and the added apps running</string>
     <string name="pref_root_autostart_title">Start in the background</string>
     <string name="pref_root_autostart_summary">Start this app and the added apps again when they are not running, even without battery optimization exemption or autostart</string>
     <string name="pref_root_enabled">Root mode enabled</string>

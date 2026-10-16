@@ -94,7 +94,7 @@
     <string name="pref_root_lock_title">Khoá trong Recents</string>
     <string name="pref_root_lock_summary">Gắn ổ khoá cho ứng dụng này và các ứng dụng đã thêm. Thẻ vẫn nằm trong Recents</string>
     <string name="pref_root_protect_title">Giữ tiến trình khi đóng</string>
-    <string name="pref_root_protect_summary">Khi vuốt bỏ hoặc \"Xoá tất cả\", giữ nguyên tiến trình nền của ứng dụng này và các ứng dụng đã thêm</string>
+    <string name="pref_root_protect_summary">Vuốt bỏ hoặc \"Xoá tất cả\" chỉ xoá thẻ khỏi Recents, vẫn giữ nguyên tiến trình nền của ứng dụng này và các ứng dụng đã thêm</string>
     <string name="pref_root_autostart_title">Tự khởi động nền</string>
     <string name="pref_root_autostart_summary">Tự chạy lại ứng dụng này và các ứng dụng đã thêm khi chúng không chạy, kể cả khi chưa bật miễn tối ưu hoá pin hay tự khởi chạy</string>
     <string name="pref_root_enabled">Đã bật chế độ ROOT</string>

@@ -34,7 +34,7 @@ object RootKeepAlive {
     // Options inside root mode. Each is a file with 1 or 0 (the push service and the watchdog run in
     // other processes, where shared preferences would not be up to date). Missing: the default.
     const val OPTION_LOCK = "lock"           // padlock in Recents (the card stays in Recents)
-    const val OPTION_PROTECT = "protect"     // keep the processes when swiping / "clear all"
+    const val OPTION_PROTECT = "protect"     // keep the processes when swiping / "clear all" (system white list)
     const val OPTION_AUTOSTART = "autostart" // start the apps in the background when they are not running
 
     private fun optionDefault(name: String) = name != OPTION_LOCK
@@ -58,7 +58,7 @@ object RootKeepAlive {
             // Switching an option off also takes the change back
             val undo = when {
                 name == OPTION_LOCK && !enabled -> "unlock"
-                name == OPTION_PROTECT && !enabled -> "unprotect"
+                name == OPTION_PROTECT && !enabled -> "unkeep"
                 else -> null
             }
             if (undo != null) runTool(appContext, listOf(undo), listOf(appContext.packageName) + readPushApps(appContext))
@@ -200,7 +200,7 @@ object RootKeepAlive {
         }
         val modes = ArrayList<String>()
         if (getOption(context, OPTION_LOCK)) modes.add("lock")
-        if (getOption(context, OPTION_PROTECT)) modes.add("protect")
+        if (getOption(context, OPTION_PROTECT)) modes.add("keep")
         runTool(context, modes, listOf(pkg) + pushApps)
         startWatchdog(context)
     }
@@ -215,9 +215,13 @@ object RootKeepAlive {
     private fun startWatchdog(context: Context) {
         val pkg = context.packageName
         val dir = context.filesDir.absolutePath
-        if (!PACKAGE_NAME.matches(pkg) || !Regex("^[A-Za-z0-9_./-]+$").matches(dir)) return
+        val apk = context.applicationInfo.sourceDir ?: return
+        if (!PACKAGE_NAME.matches(pkg) || !Regex("^[A-Za-z0-9_./-]+$").matches(dir) ||
+                !Regex("^[A-Za-z0-9_./=~+-]+$").matches(apk)) return
         val script = WATCHDOG
                 .replace("@PKFUNC@", POWER_KEEPER_FUNCTION)
+                .replace("@APK@", apk)
+                .replace("@TOOL@", RootLockTool::class.java.name)
                 .replace("@PKG@", pkg)
                 .replace("@DIR@", dir)
                 .replace("@SERVICE@", PUSH_SERVICE)
@@ -323,6 +327,16 @@ opt() {
   [ -z "§v" ] && v=§2
   [ "§v" = 1 ]
 }
+# Puts this app and the push apps on the system's cleaner white list again when it was replaced
+# (the cleaner behind "clear all" and swiping skips every package on that list)
+keepcheck() {
+  [ "§(cat §DIR/root_opt_protect 2>/dev/null)" = 0 ] && return 0
+  d=§(dumpsys ProcessManager 2>/dev/null | awk '/^CL:/{f=1;next} /^[^ ]/{f=0} f{gsub(/ /,"");print}')
+  apps="§PKG §(cat §DIR/root_push_apps 2>/dev/null)"
+  need=0
+  for a in §apps; do echo "§d" | grep -qx "§a" || need=1; done
+  [ §need = 1 ] && CLASSPATH=@APK@ app_process /system/bin @TOOL@ keep 0 §apps >/dev/null 2>&1
+}
 # Starts an app's process in the background through its Firebase messaging service
 startapp() {
   c=§(cmd package query-services --components -a com.google.firebase.MESSAGING_EVENT -p §1 2>/dev/null | head -n 1)
@@ -340,6 +354,7 @@ while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
   fi
   tick=§((tick + 1))
   if [ §((tick % 12)) -eq 0 ]; then
+    keepcheck
     for p in §(pidof §PKG:persistent) §(pidof §PKG); do echo -1000 > /proc/§p/oom_score_adj 2>/dev/null; done
     for a in §(cat §DIR/root_push_apps 2>/dev/null); do
       am set-standby-bucket §a active >/dev/null 2>&1
