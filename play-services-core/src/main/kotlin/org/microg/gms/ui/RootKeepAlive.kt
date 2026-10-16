@@ -31,6 +31,47 @@ object RootKeepAlive {
     private const val SU_TIMEOUT_MS = 15000L
     private val PACKAGE_NAME = Regex("^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$")
 
+    // Options inside root mode. Each is a file with 1 or 0 (the push service and the watchdog run in
+    // other processes, where shared preferences would not be up to date). Missing: the default.
+    const val OPTION_LOCK = "lock"           // padlock in Recents (the card stays in Recents)
+    const val OPTION_PROTECT = "protect"     // keep the processes when swiping / "clear all"
+    const val OPTION_AUTOSTART = "autostart" // start the apps in the background when they are not running
+
+    private fun optionDefault(name: String) = name != OPTION_LOCK
+
+    @JvmStatic
+    fun getOption(context: Context, name: String): Boolean {
+        val value = try {
+            File(context.filesDir, "root_opt_$name").readText().trim()
+        } catch (_: Exception) {
+            return optionDefault(name)
+        }
+        return value == "1"
+    }
+
+    @JvmStatic
+    fun setOption(context: Context, name: String, enabled: Boolean) {
+        File(context.filesDir, "root_opt_$name").writeText(if (enabled) "1" else "0")
+        if (!isEnabled(context)) return
+        val appContext = context.applicationContext ?: context
+        Thread({
+            // Switching an option off also takes the change back
+            val undo = when {
+                name == OPTION_LOCK && !enabled -> "unlock"
+                name == OPTION_PROTECT && !enabled -> "unprotect"
+                else -> null
+            }
+            if (undo != null) runTool(appContext, listOf(undo), listOf(appContext.packageName) + readPushApps(appContext))
+            apply(appContext)
+        }, "RootKeepAliveOption").start()
+    }
+
+    private fun readPushApps(context: Context): List<String> = try {
+        File(context.filesDir, PUSH_APPS_FILE).readLines().filter { PACKAGE_NAME.matches(it) }
+    } catch (_: Exception) {
+        emptyList()
+    }
+
     @JvmStatic
     fun isEnabled(context: Context): Boolean = File(context.filesDir, FLAG_FILE).exists()
 
@@ -151,7 +192,16 @@ object RootKeepAlive {
         Log.d(TAG, "Applied root keep-alive: ${output?.trim()}")
         runAsRoot(listOf(POWER_KEEPER_FUNCTION.replace('§', '$'), "pk $pkg"))
         val pushApps = allowPushApps(context)
-        lockInRecents(context, listOf(pkg) + pushApps)
+        // Earlier versions locked the apps unconditionally: when the lock option is off, undo that once
+        val migrated = File(context.filesDir, "root_lock_migrated")
+        if (!migrated.exists()) {
+            migrated.writeText("1")
+            if (!getOption(context, OPTION_LOCK)) runTool(context, listOf("unlock"), listOf(pkg) + pushApps)
+        }
+        val modes = ArrayList<String>()
+        if (getOption(context, OPTION_LOCK)) modes.add("lock")
+        if (getOption(context, OPTION_PROTECT)) modes.add("protect")
+        runTool(context, modes, listOf(pkg) + pushApps)
         startWatchdog(context)
     }
 
@@ -224,19 +274,17 @@ object RootKeepAlive {
         return safe
     }
 
-    /**
-     * Locks the apps in Xiaomi's Recents (the padlock), so "clear all", swiping a card away and
-     * Power Keeper's clean-up leave them alone. Runs [RootLockTool] as root; the result is logged.
-     */
-    private fun lockInRecents(context: Context, packages: List<String>) {
+    /** Runs [RootLockTool] as root for the packages (see there for the modes); the result is logged. */
+    private fun runTool(context: Context, modes: List<String>, packages: List<String>) {
+        if (modes.isEmpty()) return
         val apk = context.applicationInfo.sourceDir ?: return
         if (!Regex("^[A-Za-z0-9_./=~+-]+$").matches(apk)) return
         val list = packages.filter { PACKAGE_NAME.matches(it) }.distinct().joinToString(" ")
         if (list.isEmpty()) return
         val output = runAsRoot(listOf(
-                "CLASSPATH=$apk app_process /system/bin ${RootLockTool::class.java.name} 0 $list"
+                "CLASSPATH=$apk app_process /system/bin ${RootLockTool::class.java.name} ${modes.joinToString(",")} 0 $list"
         ))
-        Log.d(TAG, "Recents lock: ${output?.trim()}")
+        Log.d(TAG, "Root tool ${modes}: ${output?.trim()}")
     }
 
     /**
@@ -269,10 +317,21 @@ for f in /acct/cgroup.procs /dev/cg2_bpf/cgroup.procs /sys/fs/cgroup/cgroup.proc
   [ -w §f ] && echo §§ > §f 2>/dev/null
 done
 @PKFUNC@
+# opt NAME DEFAULT: is the root option on (files hold 1 or 0)?
+opt() {
+  v=§(cat §DIR/root_opt_§1 2>/dev/null)
+  [ -z "§v" ] && v=§2
+  [ "§v" = 1 ]
+}
+# Starts an app's process in the background through its Firebase messaging service
+startapp() {
+  c=§(cmd package query-services --components -a com.google.firebase.MESSAGING_EVENT -p §1 2>/dev/null | head -n 1)
+  [ -n "§c" ] && am start-service -n "§c" -a com.google.firebase.MESSAGING_EVENT >/dev/null 2>&1
+}
 tick=0
 fails=0
 while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
-  if [ -f §DIR/push_running ] && ! pidof §PKG:persistent >/dev/null 2>&1; then
+  if opt autostart 1 && [ -f §DIR/push_running ] && ! pidof §PKG:persistent >/dev/null 2>&1; then
     am start-foreground-service -n §PKG/@SERVICE@ -a @ACTION@ --ez @FOREGROUND@ true >/dev/null 2>&1
     fails=§((fails + 1))
     if [ §fails -ge 3 ]; then sleep 60; fi
@@ -285,6 +344,10 @@ while [ -f §DIR/root_keep_alive ] && [ -d §DIR ]; do
     for a in §(cat §DIR/root_push_apps 2>/dev/null); do
       am set-standby-bucket §a active >/dev/null 2>&1
       cmd appops set §a RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1
+      # an app that was killed (swiped away, "clear all") comes back in the background
+      if opt autostart 1 && [ -f §DIR/push_running ]; then
+        pidof §a >/dev/null 2>&1 || startapp §a
+      fi
     done
   fi
   # about every 10 minutes: keep Power Keeper from restricting this app and the push apps

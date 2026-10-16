@@ -285,8 +285,34 @@ class SettingsFragment : ResourceSettingsFragment() {
         }
     }
 
+    /** The options inside root mode: shown while root mode is on. */
+    private fun setupRootOptions() {
+        val options = mapOf(
+                PREF_ROOT_AUTOSTART to RootKeepAlive.OPTION_AUTOSTART,
+                PREF_ROOT_PROTECT to RootKeepAlive.OPTION_PROTECT,
+                PREF_ROOT_LOCK to RootKeepAlive.OPTION_LOCK
+        )
+        val rootOn = RootKeepAlive.isEnabled(requireContext())
+        for ((key, option) in options) {
+            val preference = findPreference<SwitchPreferenceCompat>(key) ?: continue
+            preference.isChecked = RootKeepAlive.getOption(requireContext(), option)
+            preference.isVisible = rootOn
+            preference.setOnPreferenceChangeListener { _, newValue ->
+                RootKeepAlive.setOption(requireContext().applicationContext, option, newValue as Boolean)
+                true
+            }
+        }
+    }
+
+    private fun showRootOptions(visible: Boolean) {
+        for (key in listOf(PREF_ROOT_AUTOSTART, PREF_ROOT_PROTECT, PREF_ROOT_LOCK)) {
+            findPreference<SwitchPreferenceCompat>(key)?.isVisible = visible
+        }
+    }
+
     private fun setupRootPreference() {
         val preference = findPreference<SwitchPreferenceCompat>(PREF_ROOT_MODE) ?: return
+        setupRootOptions()
         preference.isChecked = RootKeepAlive.isEnabled(requireContext())
         preference.setOnPreferenceChangeListener { _, newValue ->
             val appContext = requireContext().applicationContext
@@ -298,11 +324,13 @@ class SettingsFragment : ResourceSettingsFragment() {
                     val granted = withContext(Dispatchers.IO) { RootKeepAlive.enable(appContext) }
                     preference.isEnabled = true
                     preference.isChecked = granted
+                    showRootOptions(granted)
                     Toast.makeText(appContext, if (granted) R.string.pref_root_enabled else R.string.pref_root_unavailable, Toast.LENGTH_SHORT).show()
                 }
                 false
             } else {
                 RootKeepAlive.disable(appContext)
+                showRootOptions(false)
                 true
             }
         }
@@ -387,6 +415,9 @@ class SettingsFragment : ResourceSettingsFragment() {
         const val PREF_PRIVACY = "pref_privacy"
         const val PREF_ROOT_MODE = "pref_root_mode"
         const val PREF_KEEP_AWAKE = "pref_keep_awake"
+        const val PREF_ROOT_AUTOSTART = "pref_root_autostart"
+        const val PREF_ROOT_PROTECT = "pref_root_protect"
+        const val PREF_ROOT_LOCK = "pref_root_lock"
         const val PREF_IGNORE_BATTERY_OPTIMIZATION = "pref_ignore_battery_optimization"
 
         private const val ACTIVITY_LAUNCHER_CONTROL = "org.microg.gms.ui.SettingsActivityLauncher"

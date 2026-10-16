@@ -102,6 +102,33 @@
         android:persistent="false"
         android:summary="@string/pref_root_mode_summary"
         android:title="@string/pref_root_mode_title" />
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:icon="@drawable/ic_cloud_messaging"
+        android:key="pref_root_autostart"
+        android:layout="@layout/preference_material_middle"
+        android:persistent="false"
+        android:summary="@string/pref_root_autostart_summary"
+        android:title="@string/pref_root_autostart_title"
+        app:isPreferenceVisible="false" />
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:icon="@drawable/ic_self_check"
+        android:key="pref_root_protect"
+        android:layout="@layout/preference_material_middle"
+        android:persistent="false"
+        android:summary="@string/pref_root_protect_summary"
+        android:title="@string/pref_root_protect_title"
+        app:isPreferenceVisible="false" />
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:icon="@drawable/ic_privacy"
+        android:key="pref_root_lock"
+        android:layout="@layout/preference_material_middle"
+        android:persistent="false"
+        android:summary="@string/pref_root_lock_summary"
+        android:title="@string/pref_root_lock_title"
+        app:isPreferenceVisible="false" />
     <PreferenceCategory
         android:key="prefcat_footer"
         android:layout="@layout/preference_material_category_none" />

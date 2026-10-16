@@ -9,14 +9,15 @@ import androidx.annotation.Keep
 
 /**
  * Runs as root outside the app (`CLASSPATH=<apk> app_process / org.microg.gms.ui.RootLockTool ...`,
- * see [RootKeepAlive]) and "locks" apps in Xiaomi's Recents, like the padlock on a Recents card.
+ * see [RootKeepAlive]) and calls Xiaomi's system ProcessManager, which only a privileged caller can
+ * use. The class is looked up by reflection because it belongs to the Xiaomi framework.
  *
- * The launcher's Recents puts locked apps on the white list of its "clear all" and swipe-away kill,
- * and Power Keeper's own kills skip them (`ProcessManager.isLockedApplication`). The lock lives in
- * the system's ProcessManager, which only a privileged caller can change; the class is looked up by
- * reflection because it belongs to the Xiaomi framework.
+ * Arguments: `<modes> <userId> <package>...`, modes being a comma separated list of:
+ * - `lock` / `unlock`: the padlock on a Recents card. The launcher keeps locked apps out of its
+ *   "clear all" and swipe-away kill (and their card stays in Recents); Power Keeper skips them too.
+ * - `protect` / `unprotect`: `onePushUpdateWhitelist`, the system's list of push apps.
  *
- * Arguments: `<userId> <package>...`. It prints one line per package.
+ * It prints one line per mode and package.
  */
 @Keep
 object RootLockTool {
@@ -25,19 +26,31 @@ object RootLockTool {
         try {
             val manager = Class.forName("miui.process.ProcessManager")
             val isLocked = manager.getMethod("isLockedApplication", String::class.java, Int::class.javaPrimitiveType)
-            val update = manager.getMethod("updateApplicationLockedState", String::class.java, Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
-            val userId = args[0].toInt()
-            for (pkg in args.drop(1)) {
-                if (isLocked.invoke(null, pkg, userId) == true) {
-                    println("lock $pkg: already locked")
-                    continue
+            val setLocked = manager.getMethod("updateApplicationLockedState", String::class.java, Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+            val modes = args[0].split(',')
+            val userId = args[1].toInt()
+            for (pkg in args.drop(2)) {
+                for (mode in modes) {
+                    try {
+                        when (mode) {
+                            "lock", "unlock" -> {
+                                val wanted = mode == "lock"
+                                if (isLocked.invoke(null, pkg, userId) != wanted) setLocked.invoke(null, pkg, userId, wanted)
+                                println("$mode $pkg: locked=${isLocked.invoke(null, pkg, userId)}")
+                            }
+                            "protect", "unprotect" -> {
+                                val push = manager.getMethod("onePushUpdateWhitelist", String::class.java, Boolean::class.javaPrimitiveType)
+                                println("$mode $pkg: ${push.invoke(null, pkg, mode == "protect")}")
+                            }
+                        }
+                    } catch (t: Throwable) {
+                        println("$mode $pkg: error ${t.cause ?: t}")
+                    }
                 }
-                update.invoke(null, pkg, userId, true)
-                println("lock $pkg: now ${isLocked.invoke(null, pkg, userId)}")
             }
         } catch (t: Throwable) {
             // Not a Xiaomi device, or the call was refused
-            println("lock error: ${t.cause ?: t}")
+            println("error: ${t.cause ?: t}")
         }
     }
 }
