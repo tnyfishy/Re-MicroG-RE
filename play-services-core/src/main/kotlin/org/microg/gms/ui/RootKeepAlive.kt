@@ -150,7 +150,8 @@ object RootKeepAlive {
         ))
         Log.d(TAG, "Applied root keep-alive: ${output?.trim()}")
         runAsRoot(listOf(POWER_KEEPER_FUNCTION.replace('§', '$'), "pk $pkg"))
-        allowPushApps(context)
+        val pushApps = allowPushApps(context)
+        lockInRecents(context, listOf(pkg) + pushApps)
         startWatchdog(context)
     }
 
@@ -188,7 +189,7 @@ object RootKeepAlive {
      * privileged temporary allowlist that a user-installed app cannot use. With root, exempt them
      * from battery restrictions instead, so their messages are handled right away.
      */
-    private fun allowPushApps(context: Context) {
+    private fun allowPushApps(context: Context): List<String> {
         val packages = try {
             val database = GcmDatabase(context)
             try {
@@ -198,7 +199,7 @@ object RootKeepAlive {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Cannot read push apps", e)
-            return
+            return emptyList()
         }
         // Package names go into a shell command: only accept real package names
         val safe = packages.filter { PACKAGE_NAME.matches(it) }
@@ -208,7 +209,7 @@ object RootKeepAlive {
         } catch (e: Exception) {
             Log.w(TAG, "Cannot write the push app list", e)
         }
-        if (safe.isEmpty()) return
+        if (safe.isEmpty()) return safe
         runAsRoot(listOf(POWER_KEEPER_FUNCTION.replace('§', '$')) + safe.map { "pk $it" })
         val output = runAsRoot(safe.flatMap {
             listOf(
@@ -220,6 +221,22 @@ object RootKeepAlive {
             )
         })
         Log.d(TAG, "Allowed ${safe.size} push apps in background: ${output?.trim()}")
+        return safe
+    }
+
+    /**
+     * Locks the apps in Xiaomi's Recents (the padlock), so "clear all", swiping a card away and
+     * Power Keeper's clean-up leave them alone. Runs [RootLockTool] as root; the result is logged.
+     */
+    private fun lockInRecents(context: Context, packages: List<String>) {
+        val apk = context.applicationInfo.sourceDir ?: return
+        if (!Regex("^[A-Za-z0-9_./=~+-]+$").matches(apk)) return
+        val list = packages.filter { PACKAGE_NAME.matches(it) }.distinct().joinToString(" ")
+        if (list.isEmpty()) return
+        val output = runAsRoot(listOf(
+                "CLASSPATH=$apk app_process /system/bin ${RootLockTool::class.java.name} 0 $list"
+        ))
+        Log.d(TAG, "Recents lock: ${output?.trim()}")
     }
 
     /**
